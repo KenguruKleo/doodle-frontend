@@ -7,13 +7,13 @@ describe('MessageInput', () => {
     render(<MessageInput onSend={vi.fn()} isSending={false} />)
 
     expect(screen.getByPlaceholderText('Message')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
   })
 
   it('button is disabled when input is empty', () => {
     render(<MessageInput onSend={vi.fn()} isSending={false} />)
 
-    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled()
   })
 
   it('button is enabled when input has text', () => {
@@ -22,7 +22,7 @@ describe('MessageInput', () => {
     const input = screen.getByPlaceholderText('Message')
     fireEvent.change(input, { target: { value: 'Hello' } })
 
-    expect(screen.getByRole('button', { name: 'Send' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeEnabled()
   })
 
   it('calls onSend and clears input when form is submitted', () => {
@@ -32,7 +32,7 @@ describe('MessageInput', () => {
     const input = screen.getByPlaceholderText('Message')
     fireEvent.change(input, { target: { value: 'Hello World' } })
 
-    const button = screen.getByRole('button', { name: 'Send' })
+    const button = screen.getByRole('button', { name: 'Send message' })
     fireEvent.click(button)
 
     expect(onSendMock).toHaveBeenCalledWith('Hello World')
@@ -68,9 +68,17 @@ describe('MessageInput', () => {
     const input = screen.getByPlaceholderText('Message')
     fireEvent.change(input, { target: { value: '  Spaces  ' } })
 
-    const button = screen.getByRole('button', { name: 'Send' })
+    const button = screen.getByRole('button', { name: 'Send message' })
     fireEvent.click(button)
 
     expect(onSendMock).toHaveBeenCalledWith('Spaces')
+  })
+
+  it('displays sendingError when provided', () => {
+    render(<MessageInput onSend={vi.fn()} isSending={false} sendingError="Failed to send" />)
+
+    const errorMsg = screen.getByRole('alert')
+    expect(errorMsg).toBeInTheDocument()
+    expect(errorMsg).toHaveTextContent('Failed to send')
   })
 })

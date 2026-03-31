@@ -9,7 +9,14 @@ import { fetchInitialMessages, sendMessage, loadOlderMessages } from '@/store/sl
 function App() {
   useMessagePolling()
   const dispatch = useAppDispatch()
-  const { items: messages, isSending, status, hasMore } = useAppSelector((state) => state.messages)
+  const {
+    items: messages,
+    isSending,
+    status,
+    hasMore,
+    error,
+    sendingError,
+  } = useAppSelector((state) => state.messages)
 
   useEffect(() => {
     if (status === 'idle' && messages.length === 0) {
@@ -35,7 +42,14 @@ function App() {
         - flex flex-col to allow message list to scroll and input to stick at bottom
         - chat-bg applies the specific background image
       */}
-      <div className="chat-bg flex h-full w-full max-w-screen-md flex-col overflow-hidden shadow-lg">
+      <div className="chat-bg relative flex h-full w-full max-w-screen-md flex-col overflow-hidden shadow-lg">
+        {/* Global error banner */}
+        {error && (
+          <div className="absolute top-0 left-0 right-0 z-10 bg-red-500/90 px-4 py-2 text-center text-sm font-medium text-white shadow-md">
+            {error}
+          </div>
+        )}
+
         <MessageList
           messages={messages}
           currentUser={CURRENT_USER}
@@ -43,7 +57,11 @@ function App() {
           hasMore={hasMore}
           isLoadingMore={status === 'loading'}
         />
-        <MessageInput onSend={handleSendMessage} isSending={isSending} />
+        <MessageInput
+          onSend={handleSendMessage}
+          isSending={isSending}
+          sendingError={sendingError}
+        />
       </div>
     </main>
   )

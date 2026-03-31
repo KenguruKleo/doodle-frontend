@@ -6,22 +6,25 @@ interface MessageItemProps {
   isOwnMessage: boolean
 }
 
+// Extract formatters outside the component to avoid re-creating them on every render
+const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+})
+
+const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
 export const MessageItem = memo(({ message, isOwnMessage }: MessageItemProps) => {
   const dateObj = new Date(message.createdAt)
 
   // Format based on image: "10 Mar 2018 10:22"
-  const formattedDate = dateObj.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-
-  const formattedTime = dateObj.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-
+  const formattedDate = dateFormatter.format(dateObj)
+  const formattedTime = timeFormatter.format(dateObj)
   const timeString = `${formattedDate} ${formattedTime}`
 
   return (

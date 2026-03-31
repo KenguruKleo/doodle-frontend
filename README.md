@@ -21,7 +21,6 @@
 ### Styling & UI Architecture
 
 - **Tailwind CSS** (with Theme Setup)
-- **SASS**
 - **Responsive Design** (Mobile-first approach)
 - **Presentational UI Components**: "Dumb" components with re-render controls (using `React.memo` when necessary)
 
@@ -100,6 +99,30 @@ To test pagination and scrolling, you can generate 100 test messages. Due to API
 ```bash
 npm run seed
 ```
+
+## Docker & Deployment
+
+The application includes a `Dockerfile` optimized for production, using **Caddy** as a lightweight web server. It uses Caddy's template directive to inject environment variables at runtime, which means you only need to build the image once and can reuse it across different environments.
+
+### 1. Build the Docker Image
+
+```bash
+docker build -t doodle-frontend .
+```
+
+### 2. Run the Container
+
+You can pass environment variables dynamically during runtime:
+
+```bash
+docker run -p 8080:80 \
+  -e VITE_API_BASE_URL="http://localhost:3000/api/v1" \
+  -e VITE_API_TOKEN="super-secret-doodle-token" \
+  -e VITE_CURRENT_USER="Michael" \
+  doodle-frontend
+```
+
+Now the application will be accessible at `http://localhost:8080`.
 
 ## Backend API Investigation Findings
 

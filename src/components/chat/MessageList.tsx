@@ -25,7 +25,13 @@ export const MessageList = ({
   })
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center">
+    <div
+      ref={containerRef}
+      className="flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center"
+      aria-live="polite"
+      aria-atomic="false"
+      role="log"
+    >
       <div className="w-full max-w-screen-sm space-y-4">
         {/* Intersection target for loading older messages */}
         <div ref={topObserverTarget} className="h-4 w-full flex justify-center items-center">
