@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
-import { pollLatestMessages } from '../store/slices/messagesSlice'
-import type { AppDispatch } from '../store/store'
-import { MIN_POLL_INTERVAL, MAX_POLL_INTERVAL } from '../constants'
+import { pollLatestMessages } from '@/store/slices/messagesSlice'
+import type { AppDispatch } from '@/store/store'
+import { MIN_POLL_INTERVAL, MAX_POLL_INTERVAL } from '@/constants'
 
 /**
  * A custom hook to monitor server health status and fetch new messages.

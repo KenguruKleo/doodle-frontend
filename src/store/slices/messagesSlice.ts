@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { getMessages, postMessages } from '../../api/generated'
-import type { Message, CreateMessageRequest } from '../../api/generated'
-import { MESSAGES_LIMIT } from '../../constants'
+import { getMessages, postMessages } from '@/api/generated'
+import type { Message, CreateMessageRequest } from '@/api/generated'
+import { MESSAGES_LIMIT } from '@/constants'
 
 export interface MessagesState {
   items: Message[]

@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import type { Message } from '../../api/generated'
+import type { Message } from '@/api/generated'
 
 interface MessageItemProps {
   message: Message

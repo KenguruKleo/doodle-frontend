@@ -1,8 +1,8 @@
-import { useServerStatus } from './hooks/useServerStatus'
-import { MessageList } from './components/chat/MessageList'
-import { MessageInput } from './components/chat/MessageInput'
-import type { Message } from './api/generated'
-import { CURRENT_USER } from './constants'
+import { useServerStatus } from '@/hooks/useServerStatus'
+import { MessageList } from '@/components/chat/MessageList'
+import { MessageInput } from '@/components/chat/MessageInput'
+import type { Message } from '@/api/generated'
+import { CURRENT_USER } from '@/constants'
 
 // Temporary mock data for UI visual testing before we hook it up to Redux state
 const MOCK_MESSAGES: Message[] = [

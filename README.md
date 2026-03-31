@@ -1,5 +1,7 @@
 # Project Requirements
 
+[![CI](https://github.com/KenguruKleo/doodle-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/KenguruKleo/doodle-frontend/actions/workflows/ci.yml)
+
 **Reference:** [Challenge Description](./docs/challenge.md)
 **API Reference:** [OpenAPI Schema](./docs/openapi.json)
 

@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
-import { MessageInput } from '../MessageInput'
+import { MessageInput } from '@/components/chat/MessageInput'
 
 describe('MessageInput', () => {
   it('renders input and send button', () => {

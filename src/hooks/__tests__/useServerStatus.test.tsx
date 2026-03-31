@@ -2,9 +2,9 @@ import { renderHook } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
-import { useServerStatus } from '../useServerStatus'
-import { pollLatestMessages } from '../../store/slices/messagesSlice'
-import { MIN_POLL_INTERVAL } from '../../constants'
+import { useServerStatus } from '@/hooks/useServerStatus'
+import { pollLatestMessages } from '@/store/slices/messagesSlice'
+import { MIN_POLL_INTERVAL } from '@/constants'
 
 // Mock the action
 vi.mock('../../store/slices/messagesSlice', () => ({

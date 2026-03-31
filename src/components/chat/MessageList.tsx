@@ -1,5 +1,5 @@
 import { MessageItem } from './MessageItem'
-import type { Message } from '../../api/generated'
+import type { Message } from '@/api/generated'
 
 interface MessageListProps {
   messages: Message[]
