@@ -165,3 +165,20 @@ During the initial testing of the backend API, the following undocumented behavi
    The API supports an `before` query parameter in addition to `after`. This allows for robust cursor-based pagination when scrolling up to load older messages.
    - Example usage: `GET /api/v1/messages?before=<oldest_message_createdAt>&limit=10`
    - This ensures that older messages can be loaded without duplication or missing items as new messages are added in real-time.
+
+## Performance & Lighthouse Analysis
+
+The application has been heavily optimized to ensure a snappy user experience, achieving a nearly perfect Lighthouse Performance score (97+).
+
+![Lighthouse Score](./docs/Lighthouse.png)
+
+Key optimizations implemented:
+
+1. **JavaScript Bundle Optimization (Code Splitting):**
+   Heavy third-party libraries (`react`, `react-dom`, `@reduxjs/toolkit`, `react-virtuoso`) are extracted into separate vendor chunks using Rollup's `manualChunks` in Vite. This reduces the initial parsing and execution time on the main thread and allows browsers to cache libraries independently of application code.
+2. **Image Delivery Optimization:**
+   The large background image was converted from a heavy PNG (~514 KB) to a highly compressed JPEG (~131 KB), drastically improving the Largest Contentful Paint (LCP) metric.
+3. **Resource Preloading:**
+   Critical rendering path assets, such as the optimized background image, are preloaded in the `index.html` (`<link rel="preload" as="image" href="/assets/body-bg.jpg" />`), triggering early download even before the CSS finishes parsing.
+4. **Aggressive Static Asset Caching:**
+   The `Caddyfile` is configured to set a `Cache-Control` max-age of 1 year (`immutable`) for all hashed static assets in the `/assets/` directory (JS, CSS, images). Conversely, the `index.html` is strictly set to `no-store, no-cache` to ensure users always fetch the latest entry point, eliminating "stale version" issues on new deployments.
