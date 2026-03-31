@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react'
-import { useServerStatus } from '@/hooks/useServerStatus'
+import { useMessagePolling } from '@/hooks/useMessagePolling'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { CURRENT_USER } from '@/constants'
@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { fetchInitialMessages, sendMessage, loadOlderMessages } from '@/store/slices/messagesSlice'
 
 function App() {
-  useServerStatus()
+  useMessagePolling()
   const dispatch = useAppDispatch()
   const { items: messages, isSending, status, hasMore } = useAppSelector((state) => state.messages)
 

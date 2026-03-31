@@ -46,8 +46,8 @@ vi.mock('@/components/chat/MessageInput', () => ({
 }))
 
 // Mock the hook to prevent polling
-vi.mock('@/hooks/useServerStatus', () => ({
-  useServerStatus: vi.fn(),
+vi.mock('@/hooks/useMessagePolling', () => ({
+  useMessagePolling: vi.fn(),
 }))
 
 // Mock the API client

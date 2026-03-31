@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
-import { useServerStatus } from '@/hooks/useServerStatus'
+import { useMessagePolling } from '@/hooks/useMessagePolling'
 import { pollLatestMessages } from '@/store/slices/messagesSlice'
 import { MIN_POLL_INTERVAL } from '@/constants'
 
@@ -18,7 +18,7 @@ const flushPromises = async () => {
   await Promise.resolve()
 }
 
-describe('useServerStatus', () => {
+describe('useMessagePolling', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
@@ -46,7 +46,7 @@ describe('useServerStatus', () => {
     )
 
     // Initially should be called once on mount
-    renderHook(() => useServerStatus(), { wrapper })
+    renderHook(() => useMessagePolling(), { wrapper })
 
     await flushPromises()
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)
@@ -76,7 +76,7 @@ describe('useServerStatus', () => {
       })
     }) as any)
 
-    renderHook(() => useServerStatus(), { wrapper })
+    renderHook(() => useMessagePolling(), { wrapper })
 
     await flushPromises()
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)
@@ -115,7 +115,7 @@ describe('useServerStatus', () => {
       })
     }) as any)
 
-    renderHook(() => useServerStatus(), { wrapper })
+    renderHook(() => useMessagePolling(), { wrapper })
 
     await flushPromises()
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)
@@ -144,7 +144,7 @@ describe('useServerStatus', () => {
       <Provider store={store}>{children}</Provider>
     )
 
-    const { unmount } = renderHook(() => useServerStatus(), { wrapper })
+    const { unmount } = renderHook(() => useMessagePolling(), { wrapper })
 
     await flushPromises()
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)

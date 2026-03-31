@@ -13,7 +13,7 @@ import { MIN_POLL_INTERVAL, MAX_POLL_INTERVAL } from '@/constants'
  * Implements an exponential backoff strategy: increases interval on failure
  * up to MAX_POLL_INTERVAL, and resets to MIN_POLL_INTERVAL on success.
  */
-export function useServerStatus() {
+export function useMessagePolling() {
   const dispatch = useDispatch<AppDispatch>()
   const timeoutRef = useRef<number | null>(null)
 
