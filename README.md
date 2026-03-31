@@ -110,7 +110,7 @@ The application includes a `Dockerfile` optimized for production, using **Caddy*
 docker build -t doodle-frontend .
 ```
 
-### 2. Run the Container
+### 2.1. Run the Container
 
 You can pass environment variables dynamically during runtime:
 
@@ -118,8 +118,20 @@ You can pass environment variables dynamically during runtime:
 docker run -p 8080:80 \
   -e VITE_API_BASE_URL="http://localhost:3000/api/v1" \
   -e VITE_API_TOKEN="super-secret-doodle-token" \
-  -e VITE_CURRENT_USER="Michael" \
+  -e VITE_CURRENT_USER="Admin" \
   doodle-frontend
+```
+
+### 2.2. Run the Pre-built Image from Docker Hub
+
+You can pull and run the published image directly from Docker Hub, passing the required environment variables:
+
+```bash
+docker run -p 8080:80 \
+  -e VITE_API_BASE_URL="http://localhost:3000/api/v1" \
+  -e VITE_API_TOKEN="super-secret-doodle-token" \
+  -e VITE_CURRENT_USER="Admin" \
+  kengurukleo/doodle-frontend:latest
 ```
 
 Now the application will be accessible at `http://localhost:8080`.
