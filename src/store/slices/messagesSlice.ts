@@ -2,8 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { getMessages, postMessages } from '../../api/generated'
 import type { Message, CreateMessageRequest } from '../../api/generated'
-
-export const MESSAGES_LIMIT = 20
+import { MESSAGES_LIMIT } from '../../constants'
 
 export interface MessagesState {
   items: Message[]
@@ -87,6 +86,31 @@ export const sendMessage = createAsyncThunk(
       return response.data
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Failed to send message'
+      return rejectWithValue(msg)
+    }
+  },
+)
+
+// Poll for newer messages
+export const pollLatestMessages = createAsyncThunk(
+  'messages/pollLatestMessages',
+  async (_, { dispatch, getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { messages: MessagesState }
+      const items = state.messages.items
+
+      // Find the latest real (non-optimistic) message
+      // Messages are sorted chronologically if appended at the end,
+      // but let's safely find the latest by searching backwards.
+      const lastRealMessage = [...items].reverse().find((msg) => !msg._id.startsWith('temp-'))
+
+      if (lastRealMessage) {
+        await dispatch(fetchNewerMessages(lastRealMessage.createdAt)).unwrap()
+      } else {
+        await dispatch(fetchInitialMessages()).unwrap()
+      }
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Failed to poll messages'
       return rejectWithValue(msg)
     }
   },

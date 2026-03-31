@@ -1,42 +1,41 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import reducer, { checkServerStatus } from './serverSlice'
+import { describe, it, expect } from 'vitest'
+import reducer from './serverSlice'
 import type { ServerState } from './serverSlice'
-
-// Mock the generated API SDK
-vi.mock('../../api/generated/sdk.gen', () => ({
-  getMessages: vi.fn(),
-}))
+import { fetchInitialMessages, sendMessage } from './messagesSlice'
 
 describe('serverSlice', () => {
   const initialState: ServerState = {
     status: 'checking',
   }
 
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it('should return the initial state', () => {
     expect(reducer(undefined, { type: 'unknown' })).toEqual(initialState)
   })
 
-  describe('checkServerStatus', () => {
-    it('should handle pending state', () => {
-      const state = reducer(initialState, checkServerStatus.pending(''))
-      expect(state.status).toBe('checking')
-    })
+  it('should set status to online on fulfilled message actions', () => {
+    let state = reducer(initialState, fetchInitialMessages.fulfilled([], '', undefined))
+    expect(state.status).toBe('online')
 
-    it('should handle fulfilled state', () => {
-      const state = reducer(initialState, checkServerStatus.fulfilled('online', ''))
-      expect(state.status).toBe('online')
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    state = reducer({ status: 'offline' }, sendMessage.fulfilled({} as any, '', {} as any))
+    expect(state.status).toBe('online')
+  })
 
-    it('should handle rejected state', () => {
-      const state = reducer(
-        initialState,
-        checkServerStatus.rejected(new Error('offline'), '', undefined, 'offline'),
-      )
-      expect(state.status).toBe('offline')
-    })
+  it('should set status to offline on rejected message actions', () => {
+    const state = reducer(
+      initialState,
+      fetchInitialMessages.rejected(new Error('error'), '', undefined),
+    )
+    expect(state.status).toBe('offline')
+  })
+
+  it('should set status to checking on pending if currently offline', () => {
+    // If online, it stays online
+    let state = reducer({ status: 'online' }, fetchInitialMessages.pending('', undefined))
+    expect(state.status).toBe('online')
+
+    // If offline, it changes to checking
+    state = reducer({ status: 'offline' }, fetchInitialMessages.pending('', undefined))
+    expect(state.status).toBe('checking')
   })
 })
