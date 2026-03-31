@@ -14,21 +14,25 @@
 - **React**
 - **TypeScript**
 
-### State Management
+### State Management & Deduplication
 
 - **Redux + RTK** (Redux Toolkit)
+- **`createEntityAdapter`**: Automatically normalizes the Redux state and handles deduplication by `_id`. This elegantly prevents race conditions or duplicate data injections when using cursor-based pagination.
 
 ### Styling & UI Architecture
 
 - **Tailwind CSS** (with Theme Setup)
 - **Responsive Design** (Mobile-first approach)
-- **Presentational UI Components**: "Dumb" components with re-render controls (using `React.memo` when necessary)
+- **Presentational ("Dumb") Components**: UI isolation using highly optimized stateless components (like `MessageItem.tsx`) wrapped in `React.memo` to strictly control and avoid cascading re-renders when the parent chat list updates.
+- **List Virtualization**: Integrated `react-virtuoso` to efficiently render thousands of messages. It handles a "bottom-up" chat experience smoothly, ensuring mobile devices don't freeze due to an overloaded DOM.
+- **Localization**: Utilizing the native `Intl.DateTimeFormat` with `navigator.language` to automatically adapt time and date formatting (e.g., 12h vs 24h formats) based on the user's browser preferences.
+- **Accessibility (a11y)**: Semantic HTML with appropriate ARIA roles (`role="log"`, `aria-live="polite"`) to ensure the chat is fully accessible to screen readers.
 
 ### API & Data Fetching
 
-- **OpenAPI Schema**
-- **OpenAPI Schema Client Generator** (using `@hey-api/openapi-ts` for strictly typed API client)
+- **OpenAPI Schema Client Generator** (`@hey-api/openapi-ts` for strictly typed API clients).
 - **Infinite Scroll Pagination**: Fetching older messages seamlessly using the undocumented `before` query parameter supported by the backend.
+- **Optimistic Updates & Error Handling**: Sent messages appear instantly with a `pending` status. If the network request fails, they degrade gracefully to an `error` state with a visual warning, rather than confusing the user by silently disappearing from the list.
 
 ### Code Quality & Testing
 
