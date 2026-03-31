@@ -7,6 +7,8 @@
 
 **API Reference:** [OpenAPI Schema](./docs/openapi.json)
 
+![Demo](./docs/demo.gif)
+
 ## Tech Stack & Architecture
 
 ### Core Technologies

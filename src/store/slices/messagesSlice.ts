@@ -179,7 +179,7 @@ const messagesSlice = createSlice({
       state.sendingError = null
 
       const optimisticMessage: UIMessage = {
-        _id: 'temp-' + Date.now(),
+        _id: `temp-${action.meta.requestId}`,
         message: action.meta.arg.message,
         author: action.meta.arg.author,
         createdAt: new Date().toISOString(),
@@ -187,33 +187,22 @@ const messagesSlice = createSlice({
       }
       messagesAdapter.addOne(state, optimisticMessage)
     })
-    builder.addCase(
-      sendMessage.fulfilled,
-      (state, action: PayloadAction<UIMessage | undefined>) => {
-        state.isSending = false
-        if (action.payload) {
-          // Find the temporary message and remove it, then add the real one
-          const tempId = state.ids.find((id) => String(id).startsWith('temp-')) as
-            | string
-            | undefined
-          if (tempId) {
-            messagesAdapter.removeOne(state, tempId)
-          }
-          messagesAdapter.upsertOne(state, { ...action.payload, status: 'sent' })
-        }
-      },
-    )
+    builder.addCase(sendMessage.fulfilled, (state, action) => {
+      state.isSending = false
+      if (action.payload) {
+        const tempId = `temp-${action.meta.requestId}`
+        messagesAdapter.removeOne(state, tempId)
+        messagesAdapter.upsertOne(state, { ...action.payload, status: 'sent' })
+      }
+    })
     builder.addCase(sendMessage.rejected, (state, action) => {
       state.isSending = false
       state.sendingError = action.payload as string
 
-      // Mark temporary messages as error
-      const tempIds = state.ids.filter((id) => String(id).startsWith('temp-')) as string[]
-      tempIds.forEach((id) => {
-        messagesAdapter.updateOne(state, {
-          id,
-          changes: { status: 'error' },
-        })
+      const tempId = `temp-${action.meta.requestId}`
+      messagesAdapter.updateOne(state, {
+        id: tempId,
+        changes: { status: 'error' },
       })
     })
   },

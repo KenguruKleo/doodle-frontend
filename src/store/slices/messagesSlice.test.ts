@@ -122,12 +122,12 @@ describe('messagesSlice', () => {
   describe('sendMessage', () => {
     it('should add an optimistic message on pending', () => {
       const requestData = { message: 'Test message', author: 'Tester' }
-      const state = reducer(initialState, sendMessage.pending('', requestData))
+      const state = reducer(initialState, sendMessage.pending('req-id-123', requestData))
 
       expect(state.isSending).toBe(true)
       const items = selectAllMessages({ messages: state })
       expect(items).toHaveLength(1)
-      expect(items[0]._id).toMatch(/^temp-/)
+      expect(items[0]._id).toBe('temp-req-id-123')
       expect(items[0].message).toBe('Test message')
       expect(items[0].status).toBe('pending')
     })
@@ -137,7 +137,7 @@ describe('messagesSlice', () => {
       const pendingState = messagesAdapter.addOne(
         { ...initialState, isSending: true },
         {
-          _id: 'temp-123',
+          _id: 'temp-req-id-123',
           message: 'Test message',
           author: 'Tester',
           createdAt: '2024-01-01',
@@ -153,7 +153,7 @@ describe('messagesSlice', () => {
       }
       const state = reducer(
         pendingState,
-        sendMessage.fulfilled(mockRealMessage as any, '', {
+        sendMessage.fulfilled(mockRealMessage as any, 'req-id-123', {
           message: 'Test message',
           author: 'Tester',
         }),
@@ -170,7 +170,7 @@ describe('messagesSlice', () => {
       const pendingState = messagesAdapter.addOne(
         { ...initialState, isSending: true },
         {
-          _id: 'temp-123',
+          _id: 'temp-req-id-123',
           message: 'Test message',
           author: 'Tester',
           createdAt: '2024-01-01',
@@ -182,7 +182,7 @@ describe('messagesSlice', () => {
         pendingState,
         sendMessage.rejected(
           new Error('Failed'),
-          '',
+          'req-id-123',
           { message: 'Test message', author: 'Tester' },
           'Send failed',
         ),
@@ -192,7 +192,7 @@ describe('messagesSlice', () => {
       expect(state.sendingError).toBe('Send failed')
       const items = selectAllMessages({ messages: state })
       expect(items).toHaveLength(1)
-      expect(items[0]._id).toBe('temp-123')
+      expect(items[0]._id).toBe('temp-req-id-123')
       expect(items[0].status).toBe('error')
     })
 
@@ -205,7 +205,7 @@ describe('messagesSlice', () => {
       }
       const state = reducer(
         initialState,
-        sendMessage.fulfilled(mockRealMessage as any, '', {
+        sendMessage.fulfilled(mockRealMessage as any, 'req-id-123', {
           message: 'Test message',
           author: 'Tester',
         }),
