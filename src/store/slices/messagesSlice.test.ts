@@ -5,10 +5,12 @@ import reducer, {
   fetchNewerMessages,
   sendMessage,
   pollLatestMessages,
+  selectAllMessages,
 } from './messagesSlice'
 import type { MessagesState } from './messagesSlice'
 import { configureStore } from '@reduxjs/toolkit'
 import { getMessages, postMessages } from '@/api/generated/sdk.gen'
+import { messagesAdapter } from './messagesSlice'
 
 // Mock the generated API SDK
 vi.mock('@/api/generated/sdk.gen', () => ({
@@ -17,14 +19,13 @@ vi.mock('@/api/generated/sdk.gen', () => ({
 }))
 
 describe('messagesSlice', () => {
-  const initialState: MessagesState = {
-    items: [],
+  const initialState: MessagesState = messagesAdapter.getInitialState({
     status: 'idle',
     error: null,
     isSending: false,
     sendingError: null,
     hasMore: true,
-  }
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -43,10 +44,12 @@ describe('messagesSlice', () => {
 
     it('should handle fulfilled state', () => {
       const mockMessages = [{ _id: '1', message: 'Hello', author: 'User', createdAt: '2024-01-01' }]
-      const state = reducer(initialState, fetchInitialMessages.fulfilled(mockMessages, ''))
+      const state = reducer(initialState, fetchInitialMessages.fulfilled(mockMessages as any, ''))
 
       expect(state.status).toBe('succeeded')
-      expect(state.items).toEqual(mockMessages)
+      expect(selectAllMessages({ messages: state })).toEqual([
+        { ...mockMessages[0], status: 'sent' },
+      ])
       // Since it returned 1 message (< MESSAGES_LIMIT), hasMore should be false
       expect(state.hasMore).toBe(false)
     })
@@ -64,22 +67,26 @@ describe('messagesSlice', () => {
 
   describe('loadOlderMessages', () => {
     it('should prepend older messages to existing items', () => {
-      const existingState: MessagesState = {
-        ...initialState,
-        items: [{ _id: '2', message: 'Existing', author: 'User', createdAt: '2024-01-02' }],
-      }
+      const existingState = messagesAdapter.addOne(initialState, {
+        _id: '2',
+        message: 'Existing',
+        author: 'User',
+        createdAt: '2024-01-02',
+        status: 'sent',
+      })
 
       const mockOlderMessages = [
         { _id: '1', message: 'Older', author: 'User', createdAt: '2024-01-01' },
       ]
       const state = reducer(
         existingState,
-        loadOlderMessages.fulfilled(mockOlderMessages, '', 'before-date'),
+        loadOlderMessages.fulfilled(mockOlderMessages as any, '', 'before-date'),
       )
 
-      expect(state.items).toHaveLength(2)
-      expect(state.items[0]._id).toBe('1') // prepended
-      expect(state.items[1]._id).toBe('2') // existing
+      const items = selectAllMessages({ messages: state })
+      expect(items).toHaveLength(2)
+      expect(items[0]._id).toBe('1') // prepended because of sortComparer
+      expect(items[1]._id).toBe('2') // existing
     })
     it('should handle empty payload when loading older messages', () => {
       const state = reducer(initialState, loadOlderMessages.fulfilled([], '', 'before-date'))
@@ -89,22 +96,26 @@ describe('messagesSlice', () => {
 
   describe('fetchNewerMessages', () => {
     it('should append newer messages to existing items', () => {
-      const existingState: MessagesState = {
-        ...initialState,
-        items: [{ _id: '1', message: 'Existing', author: 'User', createdAt: '2024-01-01' }],
-      }
+      const existingState = messagesAdapter.addOne(initialState, {
+        _id: '1',
+        message: 'Existing',
+        author: 'User',
+        createdAt: '2024-01-01',
+        status: 'sent',
+      })
 
       const mockNewerMessages = [
         { _id: '2', message: 'Newer', author: 'User', createdAt: '2024-01-02' },
       ]
       const state = reducer(
         existingState,
-        fetchNewerMessages.fulfilled(mockNewerMessages, '', 'after-date'),
+        fetchNewerMessages.fulfilled(mockNewerMessages as any, '', 'after-date'),
       )
 
-      expect(state.items).toHaveLength(2)
-      expect(state.items[0]._id).toBe('1') // existing
-      expect(state.items[1]._id).toBe('2') // appended
+      const items = selectAllMessages({ messages: state })
+      expect(items).toHaveLength(2)
+      expect(items[0]._id).toBe('1') // existing
+      expect(items[1]._id).toBe('2') // appended
     })
   })
 
@@ -114,20 +125,25 @@ describe('messagesSlice', () => {
       const state = reducer(initialState, sendMessage.pending('', requestData))
 
       expect(state.isSending).toBe(true)
-      expect(state.items).toHaveLength(1)
-      expect(state.items[0]._id).toMatch(/^temp-/)
-      expect(state.items[0].message).toBe('Test message')
+      const items = selectAllMessages({ messages: state })
+      expect(items).toHaveLength(1)
+      expect(items[0]._id).toMatch(/^temp-/)
+      expect(items[0].message).toBe('Test message')
+      expect(items[0].status).toBe('pending')
     })
 
     it('should replace optimistic message with real message on fulfilled', () => {
       // Setup state with a temp message
-      const pendingState: MessagesState = {
-        ...initialState,
-        isSending: true,
-        items: [
-          { _id: 'temp-123', message: 'Test message', author: 'Tester', createdAt: '2024-01-01' },
-        ],
-      }
+      const pendingState = messagesAdapter.addOne(
+        { ...initialState, isSending: true },
+        {
+          _id: 'temp-123',
+          message: 'Test message',
+          author: 'Tester',
+          createdAt: '2024-01-01',
+          status: 'pending',
+        },
+      )
 
       const mockRealMessage = {
         _id: 'real-123',
@@ -137,22 +153,30 @@ describe('messagesSlice', () => {
       }
       const state = reducer(
         pendingState,
-        sendMessage.fulfilled(mockRealMessage, '', { message: 'Test message', author: 'Tester' }),
+        sendMessage.fulfilled(mockRealMessage as any, '', {
+          message: 'Test message',
+          author: 'Tester',
+        }),
       )
 
       expect(state.isSending).toBe(false)
-      expect(state.items).toHaveLength(1)
-      expect(state.items[0]._id).toBe('real-123')
+      const items = selectAllMessages({ messages: state })
+      expect(items).toHaveLength(1)
+      expect(items[0]._id).toBe('real-123')
+      expect(items[0].status).toBe('sent')
     })
 
-    it('should remove optimistic message on rejected', () => {
-      const pendingState: MessagesState = {
-        ...initialState,
-        isSending: true,
-        items: [
-          { _id: 'temp-123', message: 'Test message', author: 'Tester', createdAt: '2024-01-01' },
-        ],
-      }
+    it('should mark optimistic message as error on rejected', () => {
+      const pendingState = messagesAdapter.addOne(
+        { ...initialState, isSending: true },
+        {
+          _id: 'temp-123',
+          message: 'Test message',
+          author: 'Tester',
+          createdAt: '2024-01-01',
+          status: 'pending',
+        },
+      )
 
       const state = reducer(
         pendingState,
@@ -166,8 +190,12 @@ describe('messagesSlice', () => {
 
       expect(state.isSending).toBe(false)
       expect(state.sendingError).toBe('Send failed')
-      expect(state.items).toHaveLength(0) // Should remove the temp message
+      const items = selectAllMessages({ messages: state })
+      expect(items).toHaveLength(1)
+      expect(items[0]._id).toBe('temp-123')
+      expect(items[0].status).toBe('error')
     })
+
     it('should push real message to items if temp message is not found on fulfilled', () => {
       const mockRealMessage = {
         _id: 'real-123',
@@ -177,12 +205,16 @@ describe('messagesSlice', () => {
       }
       const state = reducer(
         initialState,
-        sendMessage.fulfilled(mockRealMessage, '', { message: 'Test message', author: 'Tester' }),
+        sendMessage.fulfilled(mockRealMessage as any, '', {
+          message: 'Test message',
+          author: 'Tester',
+        }),
       )
 
       expect(state.isSending).toBe(false)
-      expect(state.items).toHaveLength(1)
-      expect(state.items[0]._id).toBe('real-123')
+      const items = selectAllMessages({ messages: state })
+      expect(items).toHaveLength(1)
+      expect(items[0]._id).toBe('real-123')
     })
   })
 
@@ -196,9 +228,9 @@ describe('messagesSlice', () => {
         error: undefined,
         request: new Request('http://localhost'),
         response: new Response(),
-      })
+      } as any)
       await store.dispatch(fetchInitialMessages() as any)
-      expect(store.getState().messages.items).toHaveLength(1)
+      expect(selectAllMessages(store.getState())).toHaveLength(1)
 
       // Error
       vi.mocked(getMessages).mockRejectedValueOnce(new Error('Network Error'))
@@ -216,9 +248,9 @@ describe('messagesSlice', () => {
         error: undefined,
         request: new Request('http://localhost'),
         response: new Response(),
-      })
+      } as any)
       await store.dispatch(loadOlderMessages('date') as any)
-      expect(store.getState().messages.items).toHaveLength(1)
+      expect(selectAllMessages(store.getState())).toHaveLength(1)
 
       // Error
       vi.mocked(getMessages).mockRejectedValueOnce(new Error('Network Error'))
@@ -235,9 +267,9 @@ describe('messagesSlice', () => {
         error: undefined,
         request: new Request('http://localhost'),
         response: new Response(),
-      })
+      } as any)
       await store.dispatch(fetchNewerMessages('date') as any)
-      expect(store.getState().messages.items).toHaveLength(1)
+      expect(selectAllMessages(store.getState())).toHaveLength(1)
 
       // Error
       vi.mocked(getMessages).mockRejectedValueOnce(new Error('Network Error'))
@@ -254,9 +286,9 @@ describe('messagesSlice', () => {
         error: undefined,
         request: new Request('http://localhost'),
         response: new Response(),
-      })
+      } as any)
       await store.dispatch(sendMessage({ message: 'A', author: 'U' }) as any)
-      expect(store.getState().messages.items[0]._id).toBe('1')
+      expect(selectAllMessages(store.getState())[0]._id).toBe('1')
 
       // Error
       vi.mocked(postMessages).mockRejectedValueOnce(new Error('Network Error'))
@@ -273,9 +305,9 @@ describe('messagesSlice', () => {
         error: undefined,
         request: new Request('http://localhost'),
         response: new Response(),
-      })
+      } as any)
       await store.dispatch(pollLatestMessages() as any)
-      expect(store.getState().messages.items).toHaveLength(1)
+      expect(selectAllMessages(store.getState())).toHaveLength(1)
 
       // With real message -> calls fetchNewerMessages
       vi.mocked(getMessages).mockResolvedValueOnce({
@@ -283,9 +315,9 @@ describe('messagesSlice', () => {
         error: undefined,
         request: new Request('http://localhost'),
         response: new Response(),
-      })
+      } as any)
       await store.dispatch(pollLatestMessages() as any)
-      expect(store.getState().messages.items).toHaveLength(2)
+      expect(selectAllMessages(store.getState())).toHaveLength(2)
 
       // Error
       store = configureStore({ reducer: { messages: reducer } })

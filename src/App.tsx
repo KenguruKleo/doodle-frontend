@@ -4,19 +4,20 @@ import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
 import { CURRENT_USER } from '@/constants'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { fetchInitialMessages, sendMessage, loadOlderMessages } from '@/store/slices/messagesSlice'
+import {
+  fetchInitialMessages,
+  sendMessage,
+  loadOlderMessages,
+  selectAllMessages,
+} from '@/store/slices/messagesSlice'
 
 function App() {
   useMessagePolling()
   const dispatch = useAppDispatch()
-  const {
-    items: messages,
-    isSending,
-    status,
-    hasMore,
-    error,
-    sendingError,
-  } = useAppSelector((state) => state.messages)
+  const { isSending, status, hasMore, error, sendingError } = useAppSelector(
+    (state) => state.messages,
+  )
+  const messages = useAppSelector(selectAllMessages)
 
   useEffect(() => {
     if (status === 'idle' && messages.length === 0) {

@@ -1,5 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeAll } from 'vitest'
+
+vi.mock('react-virtuoso', () => ({
+  Virtuoso: ({ data, itemContent }: any) => (
+    <div data-testid="virtuoso-mock">
+      {data.map((item: any, index: number) => (
+        <div key={item._id || index}>{itemContent(index, item)}</div>
+      ))}
+    </div>
+  ),
+}))
 import { MessageList } from '@/components/chat/MessageList'
 import { CURRENT_USER } from '@/constants'
 

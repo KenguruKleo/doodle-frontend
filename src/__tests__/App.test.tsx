@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
 import App from '@/App'
-import messagesReducer from '@/store/slices/messagesSlice'
+import messagesReducer, { messagesAdapter } from '@/store/slices/messagesSlice'
 import serverReducer from '@/store/slices/serverSlice'
 import { getMessages, postMessages } from '@/api/generated/sdk.gen'
 
@@ -65,15 +65,14 @@ const createTestStore = (initialMessagesState = {}) => {
       server: serverReducer,
     },
     preloadedState: {
-      messages: {
-        items: [],
+      messages: messagesAdapter.getInitialState({
         status: 'idle' as const,
         error: null,
         isSending: false,
         sendingError: null,
         hasMore: true,
         ...initialMessagesState,
-      },
+      }),
       server: {
         status: 'online' as const,
       },
@@ -131,7 +130,10 @@ describe('App', () => {
   it('calls loadOlderMessages when handleLoadMore is triggered', async () => {
     const user = userEvent.setup()
     const store = createTestStore({
-      items: [{ _id: '1', message: 'test', author: 'user', createdAt: '123' }],
+      ids: ['1'],
+      entities: {
+        '1': { _id: '1', message: 'test', author: 'user', createdAt: '123' },
+      },
       status: 'idle' as const,
     })
 

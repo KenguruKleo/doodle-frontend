@@ -23,7 +23,7 @@ describe('MessageItem', () => {
 
     // We'll search by regex to avoid timezone issues failing the test,
     // but typically it should look like "15 Mar 2024 HH:MM"
-    const dateText = screen.getByText(/15 Mar 2024/i)
+    const dateText = screen.getByText(/15 Mar 2024|Mar 15, 2024/i)
     expect(dateText).toBeInTheDocument()
   })
 

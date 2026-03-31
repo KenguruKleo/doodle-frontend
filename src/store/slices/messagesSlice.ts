@@ -1,11 +1,19 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit'
+import type { PayloadAction, EntityState } from '@reduxjs/toolkit'
 import { getMessages, postMessages } from '@/api/generated'
 import type { Message, CreateMessageRequest } from '@/api/generated'
 import { MESSAGES_LIMIT } from '@/constants'
 
-export interface MessagesState {
-  items: Message[]
+export interface UIMessage extends Message {
+  status?: 'pending' | 'sent' | 'error'
+}
+
+export const messagesAdapter = createEntityAdapter<UIMessage, string>({
+  selectId: (message) => message._id,
+  sortComparer: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+})
+
+export interface MessagesState extends EntityState<UIMessage, string> {
   status: 'idle' | 'loading' | 'succeeded' | 'failed'
   error: string | null
   isSending: boolean
@@ -13,14 +21,13 @@ export interface MessagesState {
   hasMore: boolean
 }
 
-const initialState: MessagesState = {
-  items: [],
+const initialState: MessagesState = messagesAdapter.getInitialState({
   status: 'idle',
   error: null,
   isSending: false,
   sendingError: null,
   hasMore: true,
-}
+})
 
 // Fetch initial messages (the latest ones)
 export const fetchInitialMessages = createAsyncThunk(
@@ -28,9 +35,6 @@ export const fetchInitialMessages = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await getMessages({
-        // To get the LATEST messages (since there is no reverse sort),
-        // we ask for messages before the current time. The server will
-        // return the 20 messages immediately preceding this time, in chronological order.
         query: {
           limit: MESSAGES_LIMIT,
           before: new Date().toISOString(),
@@ -102,11 +106,8 @@ export const pollLatestMessages = createAsyncThunk(
   async (_, { dispatch, getState, rejectWithValue }) => {
     try {
       const state = getState() as { messages: MessagesState }
-      const items = state.messages.items
+      const items = messagesAdapter.getSelectors().selectAll(state.messages)
 
-      // Find the latest real (non-optimistic) message
-      // Messages are sorted chronologically if appended at the end,
-      // but let's safely find the latest by searching backwards.
       const lastRealMessage = [...items].reverse().find((msg) => !msg._id.startsWith('temp-'))
 
       if (lastRealMessage) {
@@ -133,10 +134,11 @@ const messagesSlice = createSlice({
     })
     builder.addCase(
       fetchInitialMessages.fulfilled,
-      (state, action: PayloadAction<Message[] | undefined>) => {
+      (state, action: PayloadAction<UIMessage[] | undefined>) => {
         state.status = 'succeeded'
         if (action.payload) {
-          state.items = action.payload
+          const sentMessages = action.payload.map((msg) => ({ ...msg, status: 'sent' as const }))
+          messagesAdapter.setAll(state, sentMessages)
           state.hasMore = action.payload.length === MESSAGES_LIMIT
         }
       },
@@ -149,10 +151,10 @@ const messagesSlice = createSlice({
     // Load older
     builder.addCase(
       loadOlderMessages.fulfilled,
-      (state, action: PayloadAction<Message[] | undefined>) => {
+      (state, action: PayloadAction<UIMessage[] | undefined>) => {
         if (action.payload && action.payload.length > 0) {
-          // Prepend older messages
-          state.items = [...action.payload, ...state.items]
+          const sentMessages = action.payload.map((msg) => ({ ...msg, status: 'sent' as const }))
+          messagesAdapter.upsertMany(state, sentMessages)
           state.hasMore = action.payload.length === MESSAGES_LIMIT
         } else {
           state.hasMore = false
@@ -163,48 +165,65 @@ const messagesSlice = createSlice({
     // Fetch newer
     builder.addCase(
       fetchNewerMessages.fulfilled,
-      (state, action: PayloadAction<Message[] | undefined>) => {
+      (state, action: PayloadAction<UIMessage[] | undefined>) => {
         if (action.payload && action.payload.length > 0) {
-          // Append newer messages
-          state.items = [...state.items, ...action.payload]
+          const sentMessages = action.payload.map((msg) => ({ ...msg, status: 'sent' as const }))
+          messagesAdapter.upsertMany(state, sentMessages)
         }
       },
     )
 
-    // Send message (Optimistic update is handled manually before dispatching or we can add temporary ID)
-    // Wait, the requirement: "і ми будемо використовувати оптимістик апдейт (але сервер не дозволяє передавати власний айді, о треба буде реалізувати відповідну логіку) і поки ми не отримали відповідь з сервера, думаю не варто давати користувачеві можливість відправляти нове повідомлення"
+    // Send message
     builder.addCase(sendMessage.pending, (state, action) => {
       state.isSending = true
       state.sendingError = null
 
-      // Optimistic update: Add fake message to the list
-      const optimisticMessage: Message = {
+      const optimisticMessage: UIMessage = {
         _id: 'temp-' + Date.now(),
         message: action.meta.arg.message,
         author: action.meta.arg.author,
         createdAt: new Date().toISOString(),
+        status: 'pending',
       }
-      state.items.push(optimisticMessage)
+      messagesAdapter.addOne(state, optimisticMessage)
     })
-    builder.addCase(sendMessage.fulfilled, (state, action: PayloadAction<Message | undefined>) => {
-      state.isSending = false
-      if (action.payload) {
-        // Replace optimistic message with the real one
-        const tempIndex = state.items.findIndex((msg) => msg._id.startsWith('temp-'))
-        if (tempIndex !== -1) {
-          state.items[tempIndex] = action.payload
-        } else {
-          state.items.push(action.payload)
+    builder.addCase(
+      sendMessage.fulfilled,
+      (state, action: PayloadAction<UIMessage | undefined>) => {
+        state.isSending = false
+        if (action.payload) {
+          // Find the temporary message and remove it, then add the real one
+          const tempId = state.ids.find((id) => String(id).startsWith('temp-')) as
+            | string
+            | undefined
+          if (tempId) {
+            messagesAdapter.removeOne(state, tempId)
+          }
+          messagesAdapter.upsertOne(state, { ...action.payload, status: 'sent' })
         }
-      }
-    })
+      },
+    )
     builder.addCase(sendMessage.rejected, (state, action) => {
       state.isSending = false
       state.sendingError = action.payload as string
-      // Remove optimistic message on failure
-      state.items = state.items.filter((msg) => !msg._id.startsWith('temp-'))
+
+      // Mark temporary messages as error
+      const tempIds = state.ids.filter((id) => String(id).startsWith('temp-')) as string[]
+      tempIds.forEach((id) => {
+        messagesAdapter.updateOne(state, {
+          id,
+          changes: { status: 'error' },
+        })
+      })
     })
   },
 })
+
+// Export selectors
+export const {
+  selectAll: selectAllMessages,
+  selectById: selectMessageById,
+  selectIds: selectMessageIds,
+} = messagesAdapter.getSelectors<{ messages: MessagesState }>((state) => state.messages)
 
 export default messagesSlice.reducer

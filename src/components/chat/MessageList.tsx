@@ -1,9 +1,11 @@
+import { useCallback, useRef } from 'react'
+import { Virtuoso } from 'react-virtuoso'
+import type { VirtuosoHandle } from 'react-virtuoso'
 import { MessageItem } from '@/components/chat/MessageItem'
-import type { Message } from '@/api/generated'
-import { useChatScroll } from '@/hooks/useChatScroll'
+import type { UIMessage } from '@/store/slices/messagesSlice'
 
 interface MessageListProps {
-  messages: Message[]
+  messages: UIMessage[]
   currentUser: string
   onLoadMore: () => void
   hasMore: boolean
@@ -17,36 +19,42 @@ export const MessageList = ({
   hasMore,
   isLoadingMore,
 }: MessageListProps) => {
-  const { containerRef, topObserverTarget, bottomRef } = useChatScroll({
-    messages,
-    onLoadMore,
-    hasMore,
-    isLoadingMore,
-  })
+  const virtuosoRef = useRef<VirtuosoHandle>(null)
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore) {
+      onLoadMore()
+    }
+  }, [hasMore, isLoadingMore, onLoadMore])
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center"
-      aria-live="polite"
-      aria-atomic="false"
-      role="log"
-    >
-      <div className="w-full max-w-screen-sm space-y-4">
-        {/* Intersection target for loading older messages */}
-        <div ref={topObserverTarget} className="h-4 w-full flex justify-center items-center">
-          {isLoadingMore && (
-            <span className="text-sm text-text-muted">Loading older messages...</span>
-          )}
-        </div>
-
-        {messages.map((msg) => (
-          <MessageItem key={msg._id} message={msg} isOwnMessage={msg.author === currentUser} />
-        ))}
-
-        {/* Target to scroll to bottom */}
-        <div ref={bottomRef} className="h-1" />
-      </div>
+    <div className="flex-1 w-full" aria-live="polite" aria-atomic="false" role="log">
+      <Virtuoso
+        ref={virtuosoRef}
+        data={messages}
+        className="h-full w-full"
+        initialTopMostItemIndex={messages.length - 1}
+        firstItemIndex={1000000 - messages.length} // A trick to keep scroll stable when prepending items
+        startReached={loadMore}
+        alignToBottom={true}
+        followOutput="smooth"
+        components={{
+          Header: () => (
+            <div className="h-8 w-full flex justify-center items-center py-2">
+              {isLoadingMore && (
+                <span className="text-sm text-text-muted">Loading older messages...</span>
+              )}
+            </div>
+          ),
+        }}
+        itemContent={(_index, msg) => (
+          <div className="w-full py-2 flex justify-center">
+            <div className="w-full max-w-screen-sm px-6">
+              <MessageItem message={msg} isOwnMessage={msg.author === currentUser} />
+            </div>
+          </div>
+        )}
+      />
     </div>
   )
 }
