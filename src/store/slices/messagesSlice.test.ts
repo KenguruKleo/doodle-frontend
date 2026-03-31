@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import reducer, { fetchInitialMessages, loadOlderMessages, sendMessage } from './messagesSlice'
+import reducer, {
+  fetchInitialMessages,
+  loadOlderMessages,
+  fetchNewerMessages,
+  sendMessage,
+  pollLatestMessages,
+} from './messagesSlice'
 import type { MessagesState } from './messagesSlice'
+import { configureStore } from '@reduxjs/toolkit'
+import { getMessages, postMessages } from '../../api/generated/sdk.gen'
 
 // Mock the generated API SDK
 vi.mock('../../api/generated/sdk.gen', () => ({
@@ -73,6 +81,31 @@ describe('messagesSlice', () => {
       expect(state.items[0]._id).toBe('1') // prepended
       expect(state.items[1]._id).toBe('2') // existing
     })
+    it('should handle empty payload when loading older messages', () => {
+      const state = reducer(initialState, loadOlderMessages.fulfilled([], '', 'before-date'))
+      expect(state.hasMore).toBe(false)
+    })
+  })
+
+  describe('fetchNewerMessages', () => {
+    it('should append newer messages to existing items', () => {
+      const existingState: MessagesState = {
+        ...initialState,
+        items: [{ _id: '1', message: 'Existing', author: 'User', createdAt: '2024-01-01' }],
+      }
+
+      const mockNewerMessages = [
+        { _id: '2', message: 'Newer', author: 'User', createdAt: '2024-01-02' },
+      ]
+      const state = reducer(
+        existingState,
+        fetchNewerMessages.fulfilled(mockNewerMessages, '', 'after-date'),
+      )
+
+      expect(state.items).toHaveLength(2)
+      expect(state.items[0]._id).toBe('1') // existing
+      expect(state.items[1]._id).toBe('2') // appended
+    })
   })
 
   describe('sendMessage', () => {
@@ -134,6 +167,131 @@ describe('messagesSlice', () => {
       expect(state.isSending).toBe(false)
       expect(state.sendingError).toBe('Send failed')
       expect(state.items).toHaveLength(0) // Should remove the temp message
+    })
+    it('should push real message to items if temp message is not found on fulfilled', () => {
+      const mockRealMessage = {
+        _id: 'real-123',
+        message: 'Test message',
+        author: 'Tester',
+        createdAt: '2024-01-01',
+      }
+      const state = reducer(
+        initialState,
+        sendMessage.fulfilled(mockRealMessage, '', { message: 'Test message', author: 'Tester' }),
+      )
+
+      expect(state.isSending).toBe(false)
+      expect(state.items).toHaveLength(1)
+      expect(state.items[0]._id).toBe('real-123')
+    })
+  })
+
+  describe('Thunks', () => {
+    it('fetchInitialMessages handles success and error', async () => {
+      const store = configureStore({ reducer: { messages: reducer } })
+
+      // Success
+      vi.mocked(getMessages).mockResolvedValueOnce({
+        data: [{ _id: '1', message: 'A', author: 'U', createdAt: '1' }],
+        error: undefined,
+        request: new Request('http://localhost'),
+        response: new Response(),
+      })
+      await store.dispatch(fetchInitialMessages() as any)
+      expect(store.getState().messages.items).toHaveLength(1)
+
+      // Error
+      vi.mocked(getMessages).mockRejectedValueOnce(new Error('Network Error'))
+      await store.dispatch(fetchInitialMessages() as any)
+      expect(store.getState().messages.status).toBe('failed')
+      expect(store.getState().messages.error).toBe('Network Error')
+    })
+
+    it('loadOlderMessages handles success and error', async () => {
+      const store = configureStore({ reducer: { messages: reducer } })
+
+      // Success
+      vi.mocked(getMessages).mockResolvedValueOnce({
+        data: [{ _id: '1', message: 'A', author: 'U', createdAt: '1' }],
+        error: undefined,
+        request: new Request('http://localhost'),
+        response: new Response(),
+      })
+      await store.dispatch(loadOlderMessages('date') as any)
+      expect(store.getState().messages.items).toHaveLength(1)
+
+      // Error
+      vi.mocked(getMessages).mockRejectedValueOnce(new Error('Network Error'))
+      const result = await store.dispatch(loadOlderMessages('date') as any)
+      expect(result.payload).toBe('Network Error')
+    })
+
+    it('fetchNewerMessages handles success and error', async () => {
+      const store = configureStore({ reducer: { messages: reducer } })
+
+      // Success
+      vi.mocked(getMessages).mockResolvedValueOnce({
+        data: [{ _id: '1', message: 'A', author: 'U', createdAt: '1' }],
+        error: undefined,
+        request: new Request('http://localhost'),
+        response: new Response(),
+      })
+      await store.dispatch(fetchNewerMessages('date') as any)
+      expect(store.getState().messages.items).toHaveLength(1)
+
+      // Error
+      vi.mocked(getMessages).mockRejectedValueOnce(new Error('Network Error'))
+      const result = await store.dispatch(fetchNewerMessages('date') as any)
+      expect(result.payload).toBe('Network Error')
+    })
+
+    it('sendMessage handles success and error', async () => {
+      const store = configureStore({ reducer: { messages: reducer } })
+
+      // Success
+      vi.mocked(postMessages).mockResolvedValueOnce({
+        data: { _id: '1', message: 'A', author: 'U', createdAt: '1' },
+        error: undefined,
+        request: new Request('http://localhost'),
+        response: new Response(),
+      })
+      await store.dispatch(sendMessage({ message: 'A', author: 'U' }) as any)
+      expect(store.getState().messages.items[0]._id).toBe('1')
+
+      // Error
+      vi.mocked(postMessages).mockRejectedValueOnce(new Error('Network Error'))
+      await store.dispatch(sendMessage({ message: 'A', author: 'U' }) as any)
+      expect(store.getState().messages.sendingError).toBe('Network Error')
+    })
+
+    it('pollLatestMessages handles logic with and without real messages, and errors', async () => {
+      let store = configureStore({ reducer: { messages: reducer } })
+
+      // Without real message -> calls fetchInitialMessages
+      vi.mocked(getMessages).mockResolvedValueOnce({
+        data: [{ _id: '1', message: 'A', author: 'U', createdAt: '1' }],
+        error: undefined,
+        request: new Request('http://localhost'),
+        response: new Response(),
+      })
+      await store.dispatch(pollLatestMessages() as any)
+      expect(store.getState().messages.items).toHaveLength(1)
+
+      // With real message -> calls fetchNewerMessages
+      vi.mocked(getMessages).mockResolvedValueOnce({
+        data: [{ _id: '2', message: 'B', author: 'U', createdAt: '2' }],
+        error: undefined,
+        request: new Request('http://localhost'),
+        response: new Response(),
+      })
+      await store.dispatch(pollLatestMessages() as any)
+      expect(store.getState().messages.items).toHaveLength(2)
+
+      // Error
+      store = configureStore({ reducer: { messages: reducer } })
+      vi.mocked(getMessages).mockRejectedValueOnce(new Error('Poll Error'))
+      const result = await store.dispatch(pollLatestMessages() as any)
+      expect(result.payload).toBe('Failed to poll messages')
     })
   })
 })
