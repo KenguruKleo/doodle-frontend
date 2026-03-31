@@ -124,6 +124,17 @@ docker run -p 8080:80 \
 
 Now the application will be accessible at `http://localhost:8080`.
 
+### 3. CI/CD (Automated Publishing to Docker Hub)
+
+The project includes a GitHub Action workflow (`.github/workflows/docker.yml`) that automatically builds and pushes the Docker image to Docker Hub whenever changes are pushed to the `main` branch.
+
+To enable this, configure the following **Repository Secrets** in your GitHub repository (`Settings` > `Secrets and variables` > `Actions`):
+
+- `DOCKERHUB_USERNAME`: Your Docker Hub username (e.g., `kengurukleo`).
+- `DOCKERHUB_TOKEN`: A Personal Access Token (PAT) generated in your Docker Hub account settings.
+
+Once configured, the image will be published to `kengurukleo/doodle-frontend` with the `latest` tag and a short Git SHA tag.
+
 ## Backend API Investigation Findings
 
 During the initial testing of the backend API, the following undocumented behaviors were discovered, which are crucial for the implementation:
