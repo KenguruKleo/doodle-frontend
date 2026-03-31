@@ -73,12 +73,4 @@ describe('MessageInput', () => {
 
     expect(onSendMock).toHaveBeenCalledWith('Spaces')
   })
-
-  it('displays sendingError when provided', () => {
-    render(<MessageInput onSend={vi.fn()} isSending={false} sendingError="Failed to send" />)
-
-    const errorMsg = screen.getByRole('alert')
-    expect(errorMsg).toBeInTheDocument()
-    expect(errorMsg).toHaveTextContent('Failed to send')
-  })
 })

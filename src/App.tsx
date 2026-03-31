@@ -14,10 +14,9 @@ import {
 function App() {
   useMessagePolling()
   const dispatch = useAppDispatch()
-  const { isSending, status, hasMore, error, sendingError } = useAppSelector(
-    (state) => state.messages,
-  )
+  const { isSending, status, hasMore } = useAppSelector((state) => state.messages)
   const messages = useAppSelector(selectAllMessages)
+  const serverStatus = useAppSelector((state) => state.server.status)
 
   useEffect(() => {
     if (status === 'idle' && messages.length === 0) {
@@ -45,9 +44,9 @@ function App() {
       */}
       <div className="chat-bg relative flex h-full w-full max-w-screen-md flex-col overflow-hidden shadow-lg">
         {/* Global error banner */}
-        {error && (
+        {serverStatus === 'offline' && (
           <div className="absolute top-0 left-0 right-0 z-10 bg-red-500/90 px-4 py-2 text-center text-sm font-medium text-white shadow-md">
-            {error}
+            Lost connection to the server. Retrying...
           </div>
         )}
 
@@ -58,11 +57,7 @@ function App() {
           hasMore={hasMore}
           isLoadingMore={status === 'loading'}
         />
-        <MessageInput
-          onSend={handleSendMessage}
-          isSending={isSending}
-          sendingError={sendingError}
-        />
+        <MessageInput onSend={handleSendMessage} isSending={isSending} />
       </div>
     </main>
   )

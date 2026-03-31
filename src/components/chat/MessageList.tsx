@@ -46,6 +46,7 @@ export const MessageList = ({
               )}
             </div>
           ),
+          Footer: () => <div className="h-2 w-full" />, // Adds the missing 8px to reach 16px distance from input
         }}
         itemContent={(_index, msg) => (
           <div className="w-full py-2 flex justify-center">

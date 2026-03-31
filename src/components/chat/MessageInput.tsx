@@ -3,10 +3,9 @@ import { useState, useRef, useEffect } from 'react'
 interface MessageInputProps {
   onSend: (text: string) => void
   isSending: boolean
-  sendingError?: string | null
 }
 
-export const MessageInput = ({ onSend, isSending, sendingError }: MessageInputProps) => {
+export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -27,13 +26,6 @@ export const MessageInput = ({ onSend, isSending, sendingError }: MessageInputPr
 
   return (
     <div className="shrink-0 bg-input-bg flex flex-col items-center">
-      {sendingError && (
-        <div className="w-full max-w-screen-sm px-2 pt-2">
-          <p className="text-red-300 text-sm font-medium" role="alert">
-            {sendingError}
-          </p>
-        </div>
-      )}
       <form onSubmit={handleSubmit} className="w-full p-2 border-t-0 flex justify-center">
         <div className="flex w-full max-w-screen-sm gap-2">
           <input
