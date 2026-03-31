@@ -104,13 +104,11 @@ npm run seed
 
 The application includes a `Dockerfile` optimized for production, using **Caddy** as a lightweight web server. It uses Caddy's template directive to inject environment variables at runtime, which means you only need to build the image once and can reuse it across different environments.
 
-### 1. Build the Docker Image
+### 1. Build and run the Docker Image
 
 ```bash
 docker build -t doodle-frontend .
 ```
-
-### 2.1. Run the Container
 
 You can pass environment variables dynamically during runtime:
 
@@ -122,7 +120,7 @@ docker run -p 8080:80 \
   doodle-frontend
 ```
 
-### 2.2. Run the Pre-built Image from Docker Hub
+### 2. (Optionaly) Run the Pre-built Image from Docker Hub
 
 You can pull and run the published image directly from Docker Hub, passing the required environment variables:
 
