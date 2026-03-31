@@ -1,8 +1,9 @@
-# Project Requirements
+# Doodle FE Challenge
 
 [![CI](https://github.com/KenguruKleo/doodle-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/KenguruKleo/doodle-frontend/actions/workflows/ci.yml)
 
 **Reference:** [Challenge Description](./docs/challenge.md)
+
 **API Reference:** [OpenAPI Schema](./docs/openapi.json)
 
 ## Tech Stack & Architecture
@@ -82,6 +83,9 @@ This will output the new TypeScript client to `src/api/generated`.
 - **Run tests once**: `npm run test:run`
 - **Run tests in watch mode**: `npm run test`
 - **Run tests with UI**: `npm run test:ui`
+- **Run tests with Coverage**: `npm run test:coverage` (generates coverage reports using v8)
+
+To view the coverage reports online, go to the GitHub repository, click on the **Actions** tab, select the latest "CI" workflow run, and look at the **Summary** page. A detailed coverage table will be displayed there automatically.
 
 ### 6. Linting & Formatting
 
