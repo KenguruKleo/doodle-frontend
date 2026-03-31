@@ -2,6 +2,7 @@ import { useServerStatus } from './hooks/useServerStatus'
 import { MessageList } from './components/chat/MessageList'
 import { MessageInput } from './components/chat/MessageInput'
 import type { Message } from './api/generated'
+import { CURRENT_USER } from './constants'
 
 // Temporary mock data for UI visual testing before we hook it up to Redux state
 const MOCK_MESSAGES: Message[] = [
@@ -14,7 +15,7 @@ const MOCK_MESSAGES: Message[] = [
   {
     _id: '2',
     message: "Hi, nice to meet you! I'm setting up the layout now.",
-    author: 'Me',
+    author: CURRENT_USER,
     createdAt: new Date().toISOString(),
   },
 ]
@@ -36,7 +37,7 @@ function App() {
         - chat-bg applies the specific background image
       */}
       <div className="chat-bg flex h-full w-full max-w-screen-md flex-col overflow-hidden shadow-lg">
-        <MessageList messages={MOCK_MESSAGES} currentUser="Me" />
+        <MessageList messages={MOCK_MESSAGES} currentUser={CURRENT_USER} />
         <MessageInput onSend={handleSendMessage} isSending={false} />
       </div>
     </main>

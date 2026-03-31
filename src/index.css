@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --color-text-main: #000000;
@@ -10,7 +10,7 @@
   --color-message-in: #ffffff;
   --color-border: #e2e8f0;
   --color-error: #ef4444;
-  
+
   /* Input Area Colors */
   --color-input-bg: #4b9bce; /* blue background of the input area */
   --color-input-border: #3b7b9f; /* dark blue border of the input */
@@ -33,17 +33,18 @@
 }
 
 @layer base {
-  html, body {
+  html,
+  body {
     @apply h-full w-full;
     margin: 0;
     padding: 0;
   }
-  
+
   body {
     background-color: #f0f0f0;
     @apply text-text-main font-sans;
   }
-  
+
   .chat-bg {
     background-image: url('/assets/body-bg.png');
     background-size: cover;
@@ -51,7 +52,7 @@
     background-attachment: scroll;
     background-repeat: no-repeat;
   }
-  
+
   #root {
     @apply h-full w-full flex flex-col items-center;
   }

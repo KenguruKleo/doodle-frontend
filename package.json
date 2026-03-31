@@ -53,6 +53,7 @@
     "*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
-    ]
+    ],
+    "*.{css,md}": "prettier --write"
   }
 }

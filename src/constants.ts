@@ -5,3 +5,6 @@ export const MAX_POLL_INTERVAL = 5000
 
 // Messages pagination limit
 export const MESSAGES_LIMIT = 20
+
+// Current user config
+export const CURRENT_USER = import.meta.env.VITE_CURRENT_USER || 'Michael'
