@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface MessageInputProps {
   onSend: (text: string) => void
@@ -7,6 +7,13 @@ interface MessageInputProps {
 
 export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
   const [text, setText] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!isSending) {
+      inputRef.current?.focus()
+    }
+  }, [isSending])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -24,6 +31,7 @@ export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
     >
       <div className="flex w-full max-w-screen-sm gap-2">
         <input
+          ref={inputRef}
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}

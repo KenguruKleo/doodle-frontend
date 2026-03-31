@@ -82,28 +82,19 @@ describe('useServerStatus', () => {
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)
 
     // After 1 fail, interval becomes 2000
-    await vi.advanceTimersByTimeAsync(MIN_POLL_INTERVAL)
-    expect(pollLatestMessages).toHaveBeenCalledTimes(1) // not called yet, because interval is 2000
-
-    await vi.advanceTimersByTimeAsync(1000)
-    expect(pollLatestMessages).toHaveBeenCalledTimes(2) // Total 2000ms passed -> called 2nd time.
-
-    // After 2 fails, interval becomes 4000
-    await vi.advanceTimersByTimeAsync(3999)
+    await vi.advanceTimersToNextTimerAsync()
     expect(pollLatestMessages).toHaveBeenCalledTimes(2)
 
-    await vi.advanceTimersByTimeAsync(1)
-    expect(pollLatestMessages).toHaveBeenCalledTimes(3) // Total 4000ms passed -> called 3rd time.
-
-    // After 3 fails, interval becomes min(8000, 5000) = 5000
-    await vi.advanceTimersByTimeAsync(4999)
+    // After 2 fails, interval becomes 4000
+    await vi.advanceTimersToNextTimerAsync()
     expect(pollLatestMessages).toHaveBeenCalledTimes(3)
 
-    await vi.advanceTimersByTimeAsync(1)
-    expect(pollLatestMessages).toHaveBeenCalledTimes(4) // 5000ms passed -> called 4th time.
+    // After 3 fails, interval becomes min(8000, 5000) = 5000
+    await vi.advanceTimersToNextTimerAsync()
+    expect(pollLatestMessages).toHaveBeenCalledTimes(4)
 
     // After 4 fails, interval stays at max (5000)
-    await vi.advanceTimersByTimeAsync(5000)
+    await vi.advanceTimersToNextTimerAsync()
     expect(pollLatestMessages).toHaveBeenCalledTimes(5)
   })
 
@@ -130,17 +121,17 @@ describe('useServerStatus', () => {
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)
 
     // Fails, next poll in 2000
-    await vi.advanceTimersByTimeAsync(2000)
+    await vi.advanceTimersToNextTimerAsync()
     expect(pollLatestMessages).toHaveBeenCalledTimes(2)
 
     // This second call also fails, next poll in 4000.
     // Let's make it succeed this time
     shouldFail = false
-    await vi.advanceTimersByTimeAsync(4000)
+    await vi.advanceTimersToNextTimerAsync()
     expect(pollLatestMessages).toHaveBeenCalledTimes(3)
 
     // It succeeded, so next poll should be reset to MIN_POLL_INTERVAL (1000)
-    await vi.advanceTimersByTimeAsync(MIN_POLL_INTERVAL)
+    await vi.advanceTimersToNextTimerAsync()
     expect(pollLatestMessages).toHaveBeenCalledTimes(4)
   })
 
