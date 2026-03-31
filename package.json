@@ -13,7 +13,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && make-coverage-badge --report-path coverage/coverage-summary.json --output-path ./badges/coverage.svg",
     "prepare": "husky",
     "seed": "node scripts/generate-messages.js"
   },
@@ -44,6 +44,7 @@
     "husky": "^9.1.7",
     "jsdom": "^29.0.1",
     "lint-staged": "^16.4.0",
+    "make-coverage-badge": "^1.2.0",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",

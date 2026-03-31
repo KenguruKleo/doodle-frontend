@@ -1,6 +1,7 @@
 # Doodle FE Challenge
 
 [![CI](https://github.com/KenguruKleo/doodle-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/KenguruKleo/doodle-frontend/actions/workflows/ci.yml)
+![Coverage](./badges/coverage.svg)
 
 **Reference:** [Challenge Description](./docs/challenge.md)
 
