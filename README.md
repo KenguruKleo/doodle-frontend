@@ -38,24 +38,31 @@
 npm install
 ```
 
-### 2. Start the Development Server
+### 2. Configure Environment Variables
+Copy the example environment file and configure it if needed:
+```bash
+cp .env.example .env
+```
+*(The default values in `.env` match the challenge backend defaults).*
+
+### 3. Start the Development Server
 ```bash
 npm run dev
 ```
 
-### 3. Generate the API Client
+### 4. Generate the API Client
 If the OpenAPI schema (`docs/openapi.json`) changes, regenerate the API client by running:
 ```bash
 npm run api:generate
 ```
 This will output the new TypeScript client to `src/api/generated`.
 
-### 4. Running Tests
+### 5. Running Tests
 - **Run tests once**: `npm run test:run`
 - **Run tests in watch mode**: `npm run test`
 - **Run tests with UI**: `npm run test:ui`
 
-### 5. Linting & Formatting
+### 6. Linting & Formatting
 - **Lint code**: `npm run lint`
 - **Format code**: `npm run format`
 
