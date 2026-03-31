@@ -6,7 +6,7 @@ import { MESSAGES_LIMIT } from '@/constants'
 
 export interface MessagesState {
   items: Message[]
-  status: 'idle' | 'loading' | 'failed'
+  status: 'idle' | 'loading' | 'succeeded' | 'failed'
   error: string | null
   isSending: boolean
   sendingError: string | null
@@ -28,10 +28,15 @@ export const fetchInitialMessages = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await getMessages({
-        query: { limit: MESSAGES_LIMIT },
+        // To get the LATEST messages (since there is no reverse sort),
+        // we ask for messages before the current time. The server will
+        // return the 20 messages immediately preceding this time, in chronological order.
+        query: {
+          limit: MESSAGES_LIMIT,
+          before: new Date().toISOString(),
+        },
         throwOnError: true,
       })
-      // Server returns messages. If less than limit, we have no more older messages
       return response.data
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Failed to fetch messages'
@@ -129,7 +134,7 @@ const messagesSlice = createSlice({
     builder.addCase(
       fetchInitialMessages.fulfilled,
       (state, action: PayloadAction<Message[] | undefined>) => {
-        state.status = 'idle'
+        state.status = 'succeeded'
         if (action.payload) {
           state.items = action.payload
           state.hasMore = action.payload.length === MESSAGES_LIMIT

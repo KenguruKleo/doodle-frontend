@@ -10,8 +10,9 @@ export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (text.trim() && !isSending) {
-      onSend(text.trim())
+    const trimmedText = text.trim()
+    if (trimmedText && !isSending) {
+      onSend(trimmedText)
       setText('')
     }
   }
@@ -27,6 +28,7 @@ export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={isSending}
+          maxLength={500}
           className="flex-1 rounded-sm border-2 border-input-border bg-white px-3 py-2 text-text-main outline-none focus:border-input-border placeholder:text-text-muted disabled:opacity-70"
           placeholder="Message"
         />

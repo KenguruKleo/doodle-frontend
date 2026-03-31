@@ -1,9 +1,32 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { MessageList } from '@/components/chat/MessageList'
 import { CURRENT_USER } from '@/constants'
 
 describe('MessageList', () => {
+  beforeAll(() => {
+    // Mock IntersectionObserver
+    class MockIntersectionObserver {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {
+        // do nothing
+      }
+      observe() {
+        return null
+      }
+      unobserve() {
+        return null
+      }
+      disconnect() {
+        return null
+      }
+    }
+    window.IntersectionObserver = MockIntersectionObserver as any
+
+    // Mock scrollIntoView
+    window.HTMLElement.prototype.scrollIntoView = vi.fn()
+  })
+
   const mockMessages = [
     {
       _id: '1',
@@ -20,7 +43,15 @@ describe('MessageList', () => {
   ]
 
   it('renders all messages', () => {
-    render(<MessageList messages={mockMessages} currentUser="Current User" />)
+    render(
+      <MessageList
+        messages={mockMessages}
+        currentUser="Current User"
+        onLoadMore={() => {}}
+        hasMore={true}
+        isLoadingMore={false}
+      />,
+    )
 
     expect(screen.getByText('Hello from A')).toBeInTheDocument()
     expect(screen.getByText('User A')).toBeInTheDocument()
@@ -31,9 +62,17 @@ describe('MessageList', () => {
   })
 
   it('renders nothing when messages array is empty', () => {
-    const { container } = render(<MessageList messages={[]} currentUser="Current User" />)
+    const { container } = render(
+      <MessageList
+        messages={[]}
+        currentUser="Current User"
+        onLoadMore={() => {}}
+        hasMore={true}
+        isLoadingMore={false}
+      />,
+    )
 
-    // The wrapper div is rendered, but it contains no message items
-    expect(container.querySelector('.space-y-4')?.children).toHaveLength(0)
+    // The wrapper div is rendered, but it contains no message items (only the top observer and bottom ref divs)
+    expect(container.querySelectorAll('.space-y-4 > div:not(.h-4):not(.h-1)')).toHaveLength(0)
   })
 })

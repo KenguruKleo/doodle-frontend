@@ -5,7 +5,7 @@ import {
   fetchNewerMessages,
   sendMessage,
   pollLatestMessages,
-} from './messagesSlice'
+} from '@/store/slices/messagesSlice'
 
 export type ServerStatus = 'checking' | 'online' | 'offline'
 

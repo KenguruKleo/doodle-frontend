@@ -1,32 +1,31 @@
+import { useEffect, useCallback } from 'react'
 import { useServerStatus } from '@/hooks/useServerStatus'
 import { MessageList } from '@/components/chat/MessageList'
 import { MessageInput } from '@/components/chat/MessageInput'
-import type { Message } from '@/api/generated'
 import { CURRENT_USER } from '@/constants'
-
-// Temporary mock data for UI visual testing before we hook it up to Redux state
-const MOCK_MESSAGES: Message[] = [
-  {
-    _id: '1',
-    message: 'Hello! Welcome to the technical challenge.',
-    author: 'Doodle Staff',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    _id: '2',
-    message: "Hi, nice to meet you! I'm setting up the layout now.",
-    author: CURRENT_USER,
-    createdAt: new Date().toISOString(),
-  },
-]
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { fetchInitialMessages, sendMessage, loadOlderMessages } from '@/store/slices/messagesSlice'
 
 function App() {
   useServerStatus()
+  const dispatch = useAppDispatch()
+  const { items: messages, isSending, status, hasMore } = useAppSelector((state) => state.messages)
+
+  useEffect(() => {
+    if (status === 'idle' && messages.length === 0) {
+      dispatch(fetchInitialMessages())
+    }
+  }, [dispatch, status, messages.length])
 
   const handleSendMessage = (text: string) => {
-    console.log('Sending message:', text)
-    // TODO: implement Redux action dispatch
+    dispatch(sendMessage({ message: text, author: CURRENT_USER }))
   }
+
+  const handleLoadMore = useCallback(() => {
+    if (messages.length > 0 && status !== 'loading') {
+      dispatch(loadOlderMessages(messages[0].createdAt))
+    }
+  }, [dispatch, messages, status])
 
   return (
     <main className="flex h-full w-full justify-center bg-transparent py-4 px-4 sm:px-6">
@@ -37,8 +36,14 @@ function App() {
         - chat-bg applies the specific background image
       */}
       <div className="chat-bg flex h-full w-full max-w-screen-md flex-col overflow-hidden shadow-lg">
-        <MessageList messages={MOCK_MESSAGES} currentUser={CURRENT_USER} />
-        <MessageInput onSend={handleSendMessage} isSending={false} />
+        <MessageList
+          messages={messages}
+          currentUser={CURRENT_USER}
+          onLoadMore={handleLoadMore}
+          hasMore={hasMore}
+          isLoadingMore={status === 'loading'}
+        />
+        <MessageInput onSend={handleSendMessage} isSending={isSending} />
       </div>
     </main>
   )

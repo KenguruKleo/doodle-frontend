@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import reducer from './serverSlice'
-import type { ServerState } from './serverSlice'
-import { fetchInitialMessages, sendMessage } from './messagesSlice'
+import reducer from '@/store/slices/serverSlice'
+import type { ServerState } from '@/store/slices/serverSlice'
+import { fetchInitialMessages, sendMessage } from '@/store/slices/messagesSlice'
 
 describe('serverSlice', () => {
   const initialState: ServerState = {
@@ -16,7 +16,6 @@ describe('serverSlice', () => {
     let state = reducer(initialState, fetchInitialMessages.fulfilled([], '', undefined))
     expect(state.status).toBe('online')
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     state = reducer({ status: 'offline' }, sendMessage.fulfilled({} as any, '', {} as any))
     expect(state.status).toBe('online')
   })

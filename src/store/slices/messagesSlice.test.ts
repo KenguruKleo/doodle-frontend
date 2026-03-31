@@ -8,10 +8,10 @@ import reducer, {
 } from './messagesSlice'
 import type { MessagesState } from './messagesSlice'
 import { configureStore } from '@reduxjs/toolkit'
-import { getMessages, postMessages } from '../../api/generated/sdk.gen'
+import { getMessages, postMessages } from '@/api/generated/sdk.gen'
 
 // Mock the generated API SDK
-vi.mock('../../api/generated/sdk.gen', () => ({
+vi.mock('@/api/generated/sdk.gen', () => ({
   getMessages: vi.fn(),
   postMessages: vi.fn(),
 }))
@@ -45,7 +45,7 @@ describe('messagesSlice', () => {
       const mockMessages = [{ _id: '1', message: 'Hello', author: 'User', createdAt: '2024-01-01' }]
       const state = reducer(initialState, fetchInitialMessages.fulfilled(mockMessages, ''))
 
-      expect(state.status).toBe('idle')
+      expect(state.status).toBe('succeeded')
       expect(state.items).toEqual(mockMessages)
       // Since it returned 1 message (< MESSAGES_LIMIT), hasMore should be false
       expect(state.hasMore).toBe(false)

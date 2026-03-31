@@ -95,7 +95,7 @@ To view the coverage reports online, go to the GitHub repository, click on the *
 
 ### 6. Seeding the Database (Test Data)
 
-To test pagination and scrolling, you can generate 100 test messages. Due to API constraints, backend always overwrites the `createdAt` timestamp with the current server time, so we cannot artificially spread messages over the last 24 hours. The script will generate messages sequentially with a small delay.
+To test pagination and scrolling, you can generate 100 test messages. Due to API constraints, backend always overwrites the `createdAt` timestamp with the current server time.
 
 ```bash
 npm run seed
@@ -105,10 +105,15 @@ npm run seed
 
 During the initial testing of the backend API, the following undocumented behaviors were discovered, which are crucial for the implementation:
 
-1. **Chronological Sorting:**
-   Despite the challenge documentation stating that `GET /api/v1/messages` returns messages in "reverse chronological order", actual tests show that the server returns them in **direct chronological order** (from oldest to newest). This must be accounted for when rendering the chat UI.
+1. **Chronological Sorting & Default Behavior:**
+   Despite the challenge documentation stating that `GET /api/v1/messages` returns messages in "reverse chronological order", actual tests show that the server returns them in **direct chronological order** (from oldest to newest). Furthermore, a request without pagination parameters returns the **oldest** messages in the database, not the latest.
 
-2. **Backward Pagination (`before` parameter):**
-   The API supports an undocumented `before` query parameter in addition to `after`. This allows for robust cursor-based pagination when scrolling up to load older messages.
+2. **Fetching Latest Messages (`before` parameter):**
+   To fetch the most recent messages on initial load, we must query using `before` set to the current time:
+   `GET /api/v1/messages?limit=20&before=<current_time_iso_string>`.
+   This instructs the server to return the latest 20 messages up to the current moment.
+
+3. **Backward Pagination:**
+   The API supports an `before` query parameter in addition to `after`. This allows for robust cursor-based pagination when scrolling up to load older messages.
    - Example usage: `GET /api/v1/messages?before=<oldest_message_createdAt>&limit=10`
    - This ensures that older messages can be loaded without duplication or missing items as new messages are added in real-time.

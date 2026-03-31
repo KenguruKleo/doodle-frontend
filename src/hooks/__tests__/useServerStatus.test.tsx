@@ -28,7 +28,6 @@ describe('useServerStatus', () => {
       return () => ({
         unwrap: () => Promise.resolve(),
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any)
   })
 
@@ -75,7 +74,6 @@ describe('useServerStatus', () => {
       return () => ({
         unwrap: () => Promise.reject(new Error('Network Error')),
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any)
 
     renderHook(() => useServerStatus(), { wrapper })
@@ -124,7 +122,6 @@ describe('useServerStatus', () => {
       return () => ({
         unwrap: () => (shouldFail ? Promise.reject(new Error('error')) : Promise.resolve()),
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any)
 
     renderHook(() => useServerStatus(), { wrapper })
