@@ -15,10 +15,8 @@ import { CURRENT_USER } from '@/constants'
 
 describe('MessageList', () => {
   beforeAll(() => {
-    // Mock IntersectionObserver
     class MockIntersectionObserver {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {
+      constructor() {
         // do nothing
       }
       observe() {
@@ -32,8 +30,6 @@ describe('MessageList', () => {
       }
     }
     window.IntersectionObserver = MockIntersectionObserver as any
-
-    // Mock scrollIntoView
     window.HTMLElement.prototype.scrollIntoView = vi.fn()
   })
 
@@ -56,19 +52,16 @@ describe('MessageList', () => {
     render(
       <MessageList
         messages={mockMessages}
-        currentUser="Current User"
+        currentUser={CURRENT_USER}
         onLoadMore={() => {}}
         hasMore={true}
-        isLoadingMore={false}
+        isLoadingOlderMessages={false}
       />,
     )
 
     expect(screen.getByText('Hello from A')).toBeInTheDocument()
     expect(screen.getByText('User A')).toBeInTheDocument()
-
     expect(screen.getByText(`Hi from ${CURRENT_USER}`)).toBeInTheDocument()
-    // The "Current User" name is not displayed for own messages (isOwnMessage = true)
-    // so we shouldn't try to find it in the document.
   })
 
   it('renders nothing when messages array is empty', () => {
@@ -78,11 +71,11 @@ describe('MessageList', () => {
         currentUser="Current User"
         onLoadMore={() => {}}
         hasMore={true}
-        isLoadingMore={false}
+        isLoadingOlderMessages={false}
       />,
     )
 
-    // The wrapper div is rendered, but it contains no message items (only the top observer and bottom ref divs)
-    expect(container.querySelectorAll('.space-y-4 > div:not(.h-4):not(.h-1)')).toHaveLength(0)
+    expect(screen.getByTestId('virtuoso-mock')).toBeEmptyDOMElement()
+    expect(container).not.toHaveTextContent('Hello from A')
   })
 })

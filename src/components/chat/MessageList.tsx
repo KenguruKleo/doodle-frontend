@@ -9,7 +9,7 @@ interface MessageListProps {
   currentUser: string
   onLoadMore: () => void
   hasMore: boolean
-  isLoadingMore: boolean
+  isLoadingOlderMessages: boolean
 }
 
 export const MessageList = ({
@@ -17,15 +17,15 @@ export const MessageList = ({
   currentUser,
   onLoadMore,
   hasMore,
-  isLoadingMore,
+  isLoadingOlderMessages,
 }: MessageListProps) => {
   const virtuosoRef = useRef<VirtuosoHandle>(null)
 
-  const loadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore) {
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !isLoadingOlderMessages) {
       onLoadMore()
     }
-  }, [hasMore, isLoadingMore, onLoadMore])
+  }, [hasMore, isLoadingOlderMessages, onLoadMore])
 
   return (
     <div className="flex-1 w-full" aria-live="polite" aria-atomic="false" role="log">
@@ -35,13 +35,13 @@ export const MessageList = ({
         className="h-full w-full"
         initialTopMostItemIndex={messages.length - 1}
         firstItemIndex={1000000 - messages.length} // A trick to keep scroll stable when prepending items
-        startReached={loadMore}
+        startReached={handleLoadMore}
         alignToBottom={true}
         followOutput="smooth"
         components={{
           Header: () => (
             <div className="h-8 w-full flex justify-center items-center py-2">
-              {isLoadingMore && (
+              {isLoadingOlderMessages && (
                 <span className="text-sm text-text-muted">Loading older messages...</span>
               )}
             </div>

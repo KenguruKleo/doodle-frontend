@@ -2,23 +2,23 @@ import { useState, useRef, useEffect } from 'react'
 
 interface MessageInputProps {
   onSend: (text: string) => void
-  isSending: boolean
+  isSendingMessage: boolean
 }
 
-export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
+export const MessageInput = ({ onSend, isSendingMessage }: MessageInputProps) => {
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!isSending) {
+    if (!isSendingMessage) {
       inputRef.current?.focus()
     }
-  }, [isSending])
+  }, [isSendingMessage])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const trimmedText = text.trim()
-    if (trimmedText && !isSending) {
+    if (trimmedText && !isSendingMessage) {
       onSend(trimmedText)
       setText('')
     }
@@ -33,7 +33,7 @@ export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            disabled={isSending}
+            disabled={isSendingMessage}
             maxLength={500}
             aria-label="Message text"
             className="flex-1 rounded-sm border-2 border-input-border bg-white px-3 py-2 text-text-main outline-none focus:border-input-border placeholder:text-text-muted disabled:opacity-70"
@@ -41,11 +41,11 @@ export const MessageInput = ({ onSend, isSending }: MessageInputProps) => {
           />
           <button
             type="submit"
-            disabled={!text.trim() || isSending}
+            disabled={!text.trim() || isSendingMessage}
             aria-label="Send message"
             className="flex shrink-0 items-center justify-center rounded-sm bg-send-button px-6 py-2 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSending ? '...' : 'Send'}
+            {isSendingMessage ? '...' : 'Send'}
           </button>
         </div>
       </form>

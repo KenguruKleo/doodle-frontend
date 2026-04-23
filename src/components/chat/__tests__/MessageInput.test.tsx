@@ -4,20 +4,20 @@ import { MessageInput } from '@/components/chat/MessageInput'
 
 describe('MessageInput', () => {
   it('renders input and send button', () => {
-    render(<MessageInput onSend={vi.fn()} isSending={false} />)
+    render(<MessageInput onSend={vi.fn()} isSendingMessage={false} />)
 
     expect(screen.getByPlaceholderText('Message')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
   })
 
   it('button is disabled when input is empty', () => {
-    render(<MessageInput onSend={vi.fn()} isSending={false} />)
+    render(<MessageInput onSend={vi.fn()} isSendingMessage={false} />)
 
     expect(screen.getByRole('button', { name: 'Send message' })).toBeDisabled()
   })
 
   it('button is enabled when input has text', () => {
-    render(<MessageInput onSend={vi.fn()} isSending={false} />)
+    render(<MessageInput onSend={vi.fn()} isSendingMessage={false} />)
 
     const input = screen.getByPlaceholderText('Message')
     fireEvent.change(input, { target: { value: 'Hello' } })
@@ -27,7 +27,7 @@ describe('MessageInput', () => {
 
   it('calls onSend and clears input when form is submitted', () => {
     const onSendMock = vi.fn()
-    render(<MessageInput onSend={onSendMock} isSending={false} />)
+    render(<MessageInput onSend={onSendMock} isSendingMessage={false} />)
 
     const input = screen.getByPlaceholderText('Message')
     fireEvent.change(input, { target: { value: 'Hello World' } })
@@ -39,17 +39,17 @@ describe('MessageInput', () => {
     expect(input).toHaveValue('')
   })
 
-  it('disables input and button when isSending is true', () => {
-    render(<MessageInput onSend={vi.fn()} isSending={true} />)
+  it('disables input and button when isSendingMessage is true', () => {
+    render(<MessageInput onSend={vi.fn()} isSendingMessage={true} />)
 
     expect(screen.getByPlaceholderText('Message')).toBeDisabled()
     expect(screen.getByRole('button')).toBeDisabled()
     expect(screen.getByRole('button')).toHaveTextContent('...')
   })
 
-  it('does not call onSend if isSending is true', () => {
+  it('does not call onSend if isSendingMessage is true', () => {
     const onSendMock = vi.fn()
-    render(<MessageInput onSend={onSendMock} isSending={true} />)
+    render(<MessageInput onSend={onSendMock} isSendingMessage={true} />)
 
     const input = screen.getByPlaceholderText('Message')
     // We force a change event just in case, though it's technically disabled
@@ -63,7 +63,7 @@ describe('MessageInput', () => {
 
   it('trims whitespace before sending', () => {
     const onSendMock = vi.fn()
-    render(<MessageInput onSend={onSendMock} isSending={false} />)
+    render(<MessageInput onSend={onSendMock} isSendingMessage={false} />)
 
     const input = screen.getByPlaceholderText('Message')
     fireEvent.change(input, { target: { value: '  Spaces  ' } })

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useStore } from 'react-redux'
 import { pollLatestMessages } from '@/store/slices/messagesSlice'
-import type { AppDispatch } from '@/store/store'
+import type { AppDispatch, RootState } from '@/store/store'
 import { MIN_POLL_INTERVAL, MAX_POLL_INTERVAL } from '@/constants'
 
 /**
@@ -15,13 +15,34 @@ import { MIN_POLL_INTERVAL, MAX_POLL_INTERVAL } from '@/constants'
  */
 export function useMessagePolling() {
   const dispatch = useDispatch<AppDispatch>()
+  const store = useStore<RootState>()
   const timeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     let isMounted = true
     let currentInterval = MIN_POLL_INTERVAL
 
+    const scheduleNextPoll = (interval: number) => {
+      if (isMounted) {
+        timeoutRef.current = window.setTimeout(poll, interval)
+      }
+    }
+
+    const isInitialLoadInFlight = () => {
+      const { messages } = store.getState()
+      const hasRealMessages = Object.values(messages.entities).some(
+        (message) => message !== undefined && !message._id.startsWith('temp-'),
+      )
+
+      return messages.initialLoad.status === 'loading' && !hasRealMessages
+    }
+
     const poll = async () => {
+      if (isInitialLoadInFlight()) {
+        scheduleNextPoll(MIN_POLL_INTERVAL)
+        return
+      }
+
       try {
         await dispatch(pollLatestMessages()).unwrap()
         currentInterval = MIN_POLL_INTERVAL
@@ -29,9 +50,7 @@ export function useMessagePolling() {
         currentInterval = Math.min(currentInterval * 2, MAX_POLL_INTERVAL)
       }
 
-      if (isMounted) {
-        timeoutRef.current = window.setTimeout(poll, currentInterval)
-      }
+      scheduleNextPoll(currentInterval)
     }
 
     // Initial fetch
@@ -43,5 +62,5 @@ export function useMessagePolling() {
         window.clearTimeout(timeoutRef.current)
       }
     }
-  }, [dispatch])
+  }, [dispatch, store])
 }

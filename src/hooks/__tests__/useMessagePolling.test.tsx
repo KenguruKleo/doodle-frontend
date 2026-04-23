@@ -18,6 +18,32 @@ const flushPromises = async () => {
   await Promise.resolve()
 }
 
+const createMessagesState = (overrides = {}) => ({
+  ids: [],
+  entities: {},
+  initialLoad: {
+    status: 'idle' as const,
+    error: null,
+  },
+  loadMore: {
+    status: 'idle' as const,
+    error: null,
+  },
+  send: {
+    status: 'idle' as const,
+    error: null,
+  },
+  hasMore: true,
+  ...overrides,
+})
+
+const createPollingStore = (messagesState = {}) =>
+  configureStore({
+    reducer: {
+      messages: (state = createMessagesState(messagesState)) => state,
+    },
+  })
+
 describe('useMessagePolling', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -37,9 +63,7 @@ describe('useMessagePolling', () => {
   })
 
   it('dispatches pollLatestMessages on mount and sets up interval', async () => {
-    const store = configureStore({
-      reducer: { test: (state = {}) => state },
-    })
+    const store = createPollingStore()
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <Provider store={store}>{children}</Provider>
@@ -61,9 +85,7 @@ describe('useMessagePolling', () => {
   })
 
   it('increases interval on failure (exponential backoff)', async () => {
-    const store = configureStore({
-      reducer: { test: (state = {}) => state },
-    })
+    const store = createPollingStore()
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <Provider store={store}>{children}</Provider>
@@ -99,9 +121,7 @@ describe('useMessagePolling', () => {
   })
 
   it('resets interval on success', async () => {
-    const store = configureStore({
-      reducer: { test: (state = {}) => state },
-    })
+    const store = createPollingStore()
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <Provider store={store}>{children}</Provider>
@@ -136,9 +156,7 @@ describe('useMessagePolling', () => {
   })
 
   it('clears interval on unmount', async () => {
-    const store = configureStore({
-      reducer: { test: (state = {}) => state },
-    })
+    const store = createPollingStore()
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <Provider store={store}>{children}</Provider>
@@ -157,5 +175,57 @@ describe('useMessagePolling', () => {
 
     // Should not have been called again after unmount
     expect(pollLatestMessages).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not dispatch a second startup poll while the initial load is in flight', async () => {
+    const store = createPollingStore({
+      initialLoad: {
+        status: 'loading' as const,
+        error: null,
+      },
+    })
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <Provider store={store}>{children}</Provider>
+    )
+
+    renderHook(() => useMessagePolling(), { wrapper })
+
+    await flushPromises()
+    expect(pollLatestMessages).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(MIN_POLL_INTERVAL)
+    expect(pollLatestMessages).not.toHaveBeenCalled()
+  })
+
+  it('does not dispatch startup polling while only optimistic messages exist', async () => {
+    const store = createPollingStore({
+      ids: ['temp-1'],
+      entities: {
+        'temp-1': {
+          _id: 'temp-1',
+          message: 'Pending message',
+          author: 'Michael',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          status: 'pending',
+        },
+      },
+      initialLoad: {
+        status: 'loading' as const,
+        error: null,
+      },
+    })
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <Provider store={store}>{children}</Provider>
+    )
+
+    renderHook(() => useMessagePolling(), { wrapper })
+
+    await flushPromises()
+    expect(pollLatestMessages).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(MIN_POLL_INTERVAL)
+    expect(pollLatestMessages).not.toHaveBeenCalled()
   })
 })

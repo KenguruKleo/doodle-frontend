@@ -1,61 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
 import App from '@/App'
 import messagesReducer, { messagesAdapter } from '@/store/slices/messagesSlice'
 import serverReducer from '@/store/slices/serverSlice'
-import { getMessages, postMessages } from '@/api/generated/sdk.gen'
+import { getMessages } from '@/api/generated/sdk.gen'
 
-// Mock the components to isolate App testing
 vi.mock('@/components/chat/MessageList', () => ({
-  MessageList: ({
-    messages,
-    currentUser,
-    onLoadMore,
-    hasMore,
-    isLoadingMore,
-  }: {
-    messages: any[]
-    currentUser: string
-    onLoadMore: () => void
-    hasMore: boolean
-    isLoadingMore: boolean
-  }) => (
-    <div data-testid="message-list">
-      {messages.length} messages for {currentUser}
-      <button onClick={onLoadMore} data-testid="load-more-btn">
-        Load More
-      </button>
-      <span data-testid="has-more-status">{hasMore ? 'hasMore' : 'noMore'}</span>
-      <span data-testid="loading-more-status">{isLoadingMore ? 'loading' : 'idle'}</span>
-    </div>
-  ),
+  MessageList: () => <div data-testid="message-list" />,
 }))
 
 vi.mock('@/components/chat/MessageInput', () => ({
-  MessageInput: ({ onSend, isSending }: { onSend: (text: string) => void; isSending: boolean }) => (
-    <div data-testid="message-input">
-      <button onClick={() => onSend('test message')} disabled={isSending}>
-        Send
-      </button>
-      {isSending ? 'Sending...' : 'Idle'}
-    </div>
-  ),
+  MessageInput: () => <div data-testid="message-input" />,
 }))
 
-// Mock the hook to prevent polling
-vi.mock('@/hooks/useMessagePolling', () => ({
-  useMessagePolling: vi.fn(),
-}))
-
-// Mock the API client
 vi.mock('@/api/generated/sdk.gen', () => ({
   getMessages: vi.fn().mockResolvedValue({ data: [] }),
-  postMessages: vi.fn().mockResolvedValue({
-    data: { _id: 'new', message: 'test message', author: 'Michael', createdAt: '2024' },
-  }),
 }))
 
 const createTestStore = (initialMessagesState = {}) => {
@@ -66,10 +27,18 @@ const createTestStore = (initialMessagesState = {}) => {
     },
     preloadedState: {
       messages: messagesAdapter.getInitialState({
-        status: 'idle' as const,
-        error: null,
-        isSending: false,
-        sendingError: null,
+        initialLoad: {
+          status: 'idle' as const,
+          error: null,
+        },
+        loadMore: {
+          status: 'idle' as const,
+          error: null,
+        },
+        send: {
+          status: 'idle' as const,
+          error: null,
+        },
         hasMore: true,
         ...initialMessagesState,
       }),
@@ -80,81 +49,79 @@ const createTestStore = (initialMessagesState = {}) => {
   })
 }
 
+const createGetMessagesResponse = (data: unknown[]) => ({
+  data,
+  error: undefined,
+  request: new Request('http://localhost'),
+  response: new Response(),
+})
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise
+  })
+
+  return { promise, resolve }
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('renders correctly and calls getMessages on mount', async () => {
+  it('renders correctly through the real mount flow without act warnings', async () => {
+    const deferredInitialMessages = createDeferred<any>()
+    vi.mocked(getMessages).mockImplementationOnce(() => deferredInitialMessages.promise)
+
     const store = createTestStore()
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    render(
-      <Provider store={store}>
-        <App />
-      </Provider>,
-    )
+    try {
+      render(
+        <Provider store={store}>
+          <App />
+        </Provider>,
+      )
 
-    // Should render the mocked components
-    expect(screen.getByTestId('message-list')).toBeInTheDocument()
-    expect(screen.getByTestId('message-input')).toBeInTheDocument()
+      expect(screen.getByTestId('message-list')).toBeInTheDocument()
+      expect(screen.getByTestId('message-input')).toBeInTheDocument()
 
-    // Should have called getMessages API via fetchInitialMessages
-    expect(getMessages).toHaveBeenCalled()
-  })
+      await waitFor(() => {
+        expect(store.getState().messages.initialLoad.status).toBe('loading')
+      })
 
-  it('calls postMessages when input triggers onSend', async () => {
-    const user = userEvent.setup()
-    const store = createTestStore()
+      deferredInitialMessages.resolve(
+        createGetMessagesResponse([
+          {
+            _id: '1',
+            message: 'Hello',
+            author: 'Michael',
+            createdAt: '2024-01-01T00:00:00.000Z',
+          },
+        ]) as any,
+      )
 
-    render(
-      <Provider store={store}>
-        <App />
-      </Provider>,
-    )
+      await waitFor(() => {
+        expect(store.getState().messages.initialLoad.status).toBe('succeeded')
+      })
 
-    // Click the mock send button
-    const sendButton = screen.getByText('Send')
-    await user.click(sendButton)
+      expect(getMessages).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            before: expect.any(String),
+            limit: 20,
+          }),
+          throwOnError: true,
+        }),
+      )
 
-    // Should have called postMessages API via sendMessage
-    expect(postMessages).toHaveBeenCalledWith(
-      expect.objectContaining({
-        body: {
-          message: 'test message',
-          author: expect.any(String), // The CURRENT_USER
-        },
-      }),
-    )
-  })
-
-  it('calls loadOlderMessages when handleLoadMore is triggered', async () => {
-    const user = userEvent.setup()
-    const store = createTestStore({
-      ids: ['1'],
-      entities: {
-        '1': { _id: '1', message: 'test', author: 'user', createdAt: '123' },
-      },
-      status: 'idle' as const,
-    })
-
-    render(
-      <Provider store={store}>
-        <App />
-      </Provider>,
-    )
-
-    // Initially fetch is called (even though we seeded state, fetchInitialMessages is called if length is 0, but here length is 1, so it shouldn't be called)
-    expect(getMessages).not.toHaveBeenCalled()
-
-    // Click load more button
-    const loadMoreBtn = screen.getByTestId('load-more-btn')
-    await user.click(loadMoreBtn)
-
-    // Should call getMessages with before param via loadOlderMessages thunk
-    expect(getMessages).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: { before: '123', limit: 20 },
-      }),
-    )
+      const actWarnings = consoleErrorSpy.mock.calls.filter((call) =>
+        call.some((arg) => typeof arg === 'string' && arg.includes('not wrapped in act')),
+      )
+      expect(actWarnings).toHaveLength(0)
+    } finally {
+      consoleErrorSpy.mockRestore()
+    }
   })
 })

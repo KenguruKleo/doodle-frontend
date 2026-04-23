@@ -1,38 +1,11 @@
-import { useEffect, useCallback } from 'react'
 import { useMessagePolling } from '@/hooks/useMessagePolling'
-import { MessageList } from '@/components/chat/MessageList'
-import { MessageInput } from '@/components/chat/MessageInput'
-import { CURRENT_USER } from '@/constants'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import {
-  fetchInitialMessages,
-  sendMessage,
-  loadOlderMessages,
-  selectAllMessages,
-} from '@/store/slices/messagesSlice'
+import { MessageListContainer } from '@/containers/chat/MessageListContainer'
+import { MessageInputContainer } from '@/containers/chat/MessageInputContainer'
+import { useAppSelector } from '@/store/hooks'
 
 function App() {
   useMessagePolling()
-  const dispatch = useAppDispatch()
-  const { isSending, status, hasMore } = useAppSelector((state) => state.messages)
-  const messages = useAppSelector(selectAllMessages)
   const serverStatus = useAppSelector((state) => state.server.status)
-
-  useEffect(() => {
-    if (status === 'idle' && messages.length === 0) {
-      dispatch(fetchInitialMessages())
-    }
-  }, [dispatch, status, messages.length])
-
-  const handleSendMessage = (text: string) => {
-    dispatch(sendMessage({ message: text, author: CURRENT_USER }))
-  }
-
-  const handleLoadMore = useCallback(() => {
-    if (messages.length > 0 && status !== 'loading') {
-      dispatch(loadOlderMessages(messages[0].createdAt))
-    }
-  }, [dispatch, messages, status])
 
   return (
     <main className="flex h-full w-full justify-center bg-transparent py-4 px-4 sm:px-6">
@@ -50,14 +23,8 @@ function App() {
           </div>
         )}
 
-        <MessageList
-          messages={messages}
-          currentUser={CURRENT_USER}
-          onLoadMore={handleLoadMore}
-          hasMore={hasMore}
-          isLoadingMore={status === 'loading'}
-        />
-        <MessageInput onSend={handleSendMessage} isSending={isSending} />
+        <MessageListContainer />
+        <MessageInputContainer />
       </div>
     </main>
   )

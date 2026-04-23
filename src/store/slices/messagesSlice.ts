@@ -8,24 +8,32 @@ export interface UIMessage extends Message {
   status?: 'pending' | 'sent' | 'error'
 }
 
+export interface AsyncRequestState {
+  status: 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: string | null
+}
+
 export const messagesAdapter = createEntityAdapter<UIMessage, string>({
   selectId: (message) => message._id,
   sortComparer: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
 })
 
 export interface MessagesState extends EntityState<UIMessage, string> {
-  status: 'idle' | 'loading' | 'succeeded' | 'failed'
-  error: string | null
-  isSending: boolean
-  sendingError: string | null
+  initialLoad: AsyncRequestState
+  loadMore: AsyncRequestState
+  send: AsyncRequestState
   hasMore: boolean
 }
 
-const initialState: MessagesState = messagesAdapter.getInitialState({
+const createAsyncRequestState = (): AsyncRequestState => ({
   status: 'idle',
   error: null,
-  isSending: false,
-  sendingError: null,
+})
+
+const initialState: MessagesState = messagesAdapter.getInitialState({
+  initialLoad: createAsyncRequestState(),
+  loadMore: createAsyncRequestState(),
+  send: createAsyncRequestState(),
   hasMore: true,
 })
 
@@ -129,29 +137,43 @@ const messagesSlice = createSlice({
   extraReducers: (builder) => {
     // Initial fetch
     builder.addCase(fetchInitialMessages.pending, (state) => {
-      state.status = 'loading'
-      state.error = null
+      state.initialLoad.status = 'loading'
+      state.initialLoad.error = null
     })
     builder.addCase(
       fetchInitialMessages.fulfilled,
       (state, action: PayloadAction<UIMessage[] | undefined>) => {
-        state.status = 'succeeded'
+        state.initialLoad.status = 'succeeded'
+        state.initialLoad.error = null
+
         if (action.payload) {
           const sentMessages = action.payload.map((msg) => ({ ...msg, status: 'sent' as const }))
-          messagesAdapter.setAll(state, sentMessages)
+          const localTempMessages = Object.values(state.entities).filter(
+            (message): message is UIMessage =>
+              message !== undefined && message._id.startsWith('temp-'),
+          )
+
+          messagesAdapter.setAll(state, [...sentMessages, ...localTempMessages])
           state.hasMore = action.payload.length === MESSAGES_LIMIT
         }
       },
     )
     builder.addCase(fetchInitialMessages.rejected, (state, action) => {
-      state.status = 'failed'
-      state.error = action.payload as string
+      state.initialLoad.status = 'failed'
+      state.initialLoad.error = action.payload as string
     })
 
     // Load older
+    builder.addCase(loadOlderMessages.pending, (state) => {
+      state.loadMore.status = 'loading'
+      state.loadMore.error = null
+    })
     builder.addCase(
       loadOlderMessages.fulfilled,
       (state, action: PayloadAction<UIMessage[] | undefined>) => {
+        state.loadMore.status = 'succeeded'
+        state.loadMore.error = null
+
         if (action.payload && action.payload.length > 0) {
           const sentMessages = action.payload.map((msg) => ({ ...msg, status: 'sent' as const }))
           messagesAdapter.upsertMany(state, sentMessages)
@@ -161,6 +183,10 @@ const messagesSlice = createSlice({
         }
       },
     )
+    builder.addCase(loadOlderMessages.rejected, (state, action) => {
+      state.loadMore.status = 'failed'
+      state.loadMore.error = action.payload as string
+    })
 
     // Fetch newer
     builder.addCase(
@@ -175,8 +201,8 @@ const messagesSlice = createSlice({
 
     // Send message
     builder.addCase(sendMessage.pending, (state, action) => {
-      state.isSending = true
-      state.sendingError = null
+      state.send.status = 'loading'
+      state.send.error = null
 
       const optimisticMessage: UIMessage = {
         _id: `temp-${action.meta.requestId}`,
@@ -188,7 +214,9 @@ const messagesSlice = createSlice({
       messagesAdapter.addOne(state, optimisticMessage)
     })
     builder.addCase(sendMessage.fulfilled, (state, action) => {
-      state.isSending = false
+      state.send.status = 'succeeded'
+      state.send.error = null
+
       if (action.payload) {
         const tempId = `temp-${action.meta.requestId}`
         messagesAdapter.removeOne(state, tempId)
@@ -196,8 +224,8 @@ const messagesSlice = createSlice({
       }
     })
     builder.addCase(sendMessage.rejected, (state, action) => {
-      state.isSending = false
-      state.sendingError = action.payload as string
+      state.send.status = 'failed'
+      state.send.error = action.payload as string
 
       const tempId = `temp-${action.meta.requestId}`
       messagesAdapter.updateOne(state, {
